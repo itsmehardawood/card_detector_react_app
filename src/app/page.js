@@ -21,7 +21,7 @@ const JsonResponseViewer = ({ data }) => {
 
 const CardDetectionApp = () => {
   // State management
-  const [currentPhase, setCurrentPhase] = useState('idle'); // idle, front, flip-card, back, results, error
+  const [currentPhase, setCurrentPhase] = useState('idle'); // idle, front-countdown, front, flip-card, back-countdown, back, results, error
   const [detectionActive, setDetectionActive] = useState(false);
   const [finalOcrResults, setFinalOcrResults] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,6 +33,7 @@ const CardDetectionApp = () => {
   const canvasRef = useRef(null);
   const capturedFrames = useRef([]);
   const captureIntervalRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
 
   // Initialize camera
   const initializeCamera = async () => {
@@ -54,22 +55,41 @@ const CardDetectionApp = () => {
   };
 
   useEffect(() => {
-  const videoElement = videoRef.current; // ✅ Capture the ref once
-  initializeCamera();
+    const videoElement = videoRef.current; // ✅ Capture the ref once
+    initializeCamera();
 
-  return () => {
-    // Cleanup camera stream
-    if (videoElement?.srcObject) {
-      const tracks = videoElement.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-    }
+    return () => {
+      // Cleanup camera stream
+      if (videoElement?.srcObject) {
+        const tracks = videoElement.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+      }
 
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-    }
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+      }
+
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Countdown function
+  const startCountdown = (onComplete) => {
+    setCountdown(5);
+    
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownIntervalRef.current);
+          onComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
-}, []);
-
 
   // Capture frame from video
   const captureFrame = () => {
@@ -115,7 +135,7 @@ const CardDetectionApp = () => {
         
         console.log(`Sending frame ${frameNumber} for ${phase} phase to API (attempt ${attempt})...`);
         
-        const response = await fetch('https://a623-110-39-39-254.ngrok-free.app/detect', {
+        const response = await fetch('https://cardapp.hopto.org/detect', {
           method: 'POST',
           body: formData,
           headers: {
@@ -149,88 +169,103 @@ const CardDetectionApp = () => {
   };
 
   // Capture and send frames continuously
-  const captureAndSendFrames = async (phase) => {
-    // Generate session ID if not exists
-    const currentSessionId = sessionId || `session_${Date.now()}`;
-    if (!sessionId) {
-      setSessionId(currentSessionId);
-    }
+  // Capture and send frames continuously
+const captureAndSendFrames = async (phase) => {
+  // Generate session ID if not exists
+  const currentSessionId = sessionId || `session_${Date.now()}`;
+  if (!sessionId) {
+    setSessionId(currentSessionId);
+  }
+  
+  let lastApiResponse = null;
+  const maxFrames = 70; // Maximum 70 frames per side (safety limit)
+  
+  // Ensure video is ready
+  if (!videoRef.current || videoRef.current.readyState < 2) {
+    throw new Error('Video not ready for capture');
+  }
+  
+  return new Promise((resolve, reject) => {
+    let frameNumber = 0;
+    let timeoutId = null;
+    let isComplete = false; // Flag to track if we've got 6 frames
     
-    let lastApiResponse = null;
-    const maxFrames = 70; // Maximum 15 frames per side
+    const cleanup = () => {
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+        captureIntervalRef.current = null;
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      setIsProcessing(false);
+    };
     
-    // Ensure video is ready
-    if (!videoRef.current || videoRef.current.readyState < 2) {
-      throw new Error('Video not ready for capture');
-    }
-    
-    return new Promise((resolve, reject) => {
-      let frameNumber = 0;
-      let timeoutId = null;
-      
-      const cleanup = () => {
-        if (captureIntervalRef.current) {
-          clearInterval(captureIntervalRef.current);
-          captureIntervalRef.current = null;
-        }
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
-        setIsProcessing(false);
-      };
-      
-      captureIntervalRef.current = setInterval(async () => {
-        try {
-          const frame = await captureFrame();
+    const processFrame = async () => {
+      try {
+        if (isComplete) return; // Don't process more frames if we're done
+        
+        const frame = await captureFrame();
+        
+        if (frame && frame.size > 0) {
+          frameNumber++;
           
-          if (frame && frame.size > 0) {
-            frameNumber++;
+          // Send frame immediately to API
+          setIsProcessing(true);
+          try {
+            const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
             
-            // Send frame immediately to API
-            setIsProcessing(true);
-            try {
-              const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
-              
-              // Store the latest response
-              lastApiResponse = apiResponse;
-              setIsProcessing(false);
-              
-              // Check if we have buffered enough frames based on phase
-              if (phase === 'front' && apiResponse.buffer_info?.front_frames_buffered >= 6) {
-                cleanup();
-                console.log('Front side complete - 6 frames buffered');
-                resolve(apiResponse);
-              } else if (phase === 'back' && apiResponse.buffer_info?.back_frames_buffered >= 6) {
-                cleanup();
-                console.log('Back side complete - 6 frames buffered');
-                resolve(apiResponse);
-              }
-              
-              // Stop if we've reached maximum frames without getting buffer condition
-              if (frameNumber >= maxFrames) {
-                cleanup();
-                console.log(`Reached maximum ${maxFrames} frames for ${phase} side`);
-                if (lastApiResponse) {
-                  resolve(lastApiResponse);
-                } else {
-                  reject(new Error(`Failed to get sufficient frames after ${maxFrames} attempts`));
-                }
-              }
-              
-            } catch (apiError) {
-              console.error(`API error for frame ${frameNumber}:`, apiError);
-              setIsProcessing(false);
-              // Continue with next frame
+            // Store the latest response
+            lastApiResponse = apiResponse;
+            setIsProcessing(false);
+            
+            // Check if we have buffered enough frames based on phase
+            const bufferedFrames = phase === 'front' 
+              ? apiResponse.buffer_info?.front_frames_buffered 
+              : apiResponse.buffer_info?.back_frames_buffered;
+            
+            if (bufferedFrames >= 6) {
+              isComplete = true;
+              cleanup();
+              console.log(`${phase} side complete - 6 frames buffered`);
+              resolve(apiResponse);
+              return;
             }
+            
+            // Stop if we've reached maximum frames without getting buffer condition
+            if (frameNumber >= maxFrames) {
+              isComplete = true;
+              cleanup();
+              console.log(`Reached maximum ${maxFrames} frames for ${phase} side`);
+              if (lastApiResponse) {
+                resolve(lastApiResponse);
+              } else {
+                reject(new Error(`Failed to get sufficient frames after ${maxFrames} attempts`));
+              }
+              return;
+            }
+            
+          } catch (apiError) {
+            console.error(`API error for frame ${frameNumber}:`, apiError);
+            setIsProcessing(false);
+            // Continue with next frame
           }
-        } catch (error) {
-          console.error('Error in capture loop:', error);
         }
-      }, 1000); // Send frames every 1 seconds
-      
-      // Timeout after 45 seconds (15 frames * 3 seconds per frame max)
-      timeoutId = setTimeout(() => {
+      } catch (error) {
+        console.error('Error in frame processing:', error);
+      }
+    };
+    
+    // Start with an immediate frame capture
+    processFrame();
+    
+    // Then set up interval for subsequent frames
+    captureIntervalRef.current = setInterval(processFrame, 1000); // Send frames every 1 second
+    
+    // Timeout after 45 seconds (15 frames * 3 seconds per frame max)
+    timeoutId = setTimeout(() => {
+      if (!isComplete) {
         cleanup();
         if (lastApiResponse) {
           console.log('Timeout reached, using last response');
@@ -238,51 +273,62 @@ const CardDetectionApp = () => {
         } else {
           reject(new Error('Timeout: No successful API responses received'));
         }
-      }, 55000);
+      }
+    }, 55000);
+  });
+};
+
+  const startFrontSideDetection = async () => {
+    setCurrentPhase('front-countdown');
+    setErrorMessage('');
+
+    // Start 5-second countdown before beginning detection
+    startCountdown(async () => {
+      setCurrentPhase('front');
+      setDetectionActive(true);
+
+      try {
+        // Keep sending frames until front_frames_buffered = 6 (max 15 frames)
+        await captureAndSendFrames('front');
+        
+        setDetectionActive(false);
+        
+        // Wait for user to flip card and press button (no auto-start)
+        setCurrentPhase('flip-card');
+        
+      } catch (error) {
+        console.error('Front side detection failed:', error);
+        setDetectionActive(false);
+        setErrorMessage(`Front side detection failed: ${error.message}`);
+        setCurrentPhase('error');
+      }
     });
   };
 
-  const startFrontSideDetection = async () => {
-    setCurrentPhase('front');
-    setDetectionActive(true);
-    setErrorMessage('');
-
-    try {
-      // Keep sending frames until front_frames_buffered = 6 (max 15 frames)
-      await captureAndSendFrames('front');
-      
-      setDetectionActive(false);
-      
-      // Wait for user to flip card and press button (no auto-start)
-      setCurrentPhase('flip-card');
-      
-    } catch (error) {
-      console.error('Front side detection failed:', error);
-      setDetectionActive(false);
-      setErrorMessage(`Front side detection failed: ${error.message}`);
-      setCurrentPhase('error');
-    }
-  };
-
   const startBackSideDetection = async () => {
-    setCurrentPhase('back');
-    setDetectionActive(true);
+    setCurrentPhase('back-countdown');
     setErrorMessage('');
 
-    try {
-      // Keep sending frames until back_frames_buffered = 6
-      const finalResult = await captureAndSendFrames('back');
-      
-      setFinalOcrResults(finalResult);
-      setCurrentPhase('results');
-      setDetectionActive(false);
-      
-    } catch (error) {
-      console.error('Back side detection failed:', error);
-      setDetectionActive(false);
-      setErrorMessage(`Back side detection failed: ${error.message}`);
-      setCurrentPhase('error');
-    }
+    // Start 5-second countdown before beginning detection
+    startCountdown(async () => {
+      setCurrentPhase('back');
+      setDetectionActive(true);
+
+      try {
+        // Keep sending frames until back_frames_buffered = 6
+        const finalResult = await captureAndSendFrames('back');
+        
+        setFinalOcrResults(finalResult);
+        setCurrentPhase('results');
+        setDetectionActive(false);
+        
+      } catch (error) {
+        console.error('Back side detection failed:', error);
+        setDetectionActive(false);
+        setErrorMessage(`Back side detection failed: ${error.message}`);
+        setCurrentPhase('error');
+      }
+    });
   };
 
   const resetApplication = () => {
@@ -296,6 +342,9 @@ const CardDetectionApp = () => {
     capturedFrames.current = [];
     if (captureIntervalRef.current) {
       clearInterval(captureIntervalRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
     }
   };
 
@@ -429,7 +478,7 @@ const CardDetectionApp = () => {
 
         {/* Camera View */}
         <div className="bg-white rounded-lg shadow-lg p-2 sm:p-4 mb-4 sm:mb-6">
-<div className="relative rounded-lg overflow-hidden aspect-[4/3] sm:aspect-[16/9]">
+          <div className="relative rounded-lg overflow-hidden aspect-[4/3] sm:aspect-[16/9]">
             <video
               ref={videoRef}
               autoPlay
@@ -463,7 +512,7 @@ const CardDetectionApp = () => {
                 
                 {/* Instruction text below the frame - Responsive */}
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 sm:mt-4">
-                  <div className="bg-black bg-opacity-75 rounded-lg px-2 sm:px-4 py-1 sm:py-2 text-center">
+                  <div className="bg-opacity-75 rounded-lg px-2 sm:px-4 py-1 sm:py-2 text-center">
                     <p className="text-white text-xs sm:text-sm font-medium whitespace-nowrap">
                       Place card within frame
                     </p>
@@ -471,6 +520,23 @@ const CardDetectionApp = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Countdown Overlay */}
+            {(currentPhase === 'front-countdown' || currentPhase === 'back-countdown') && countdown > 0 && (
+              <div className="absolute inset-0  bg-opacity-60 flex flex-col items-center justify-center text-white">
+                <div className=" bg-opacity-75 rounded-lg p-4 sm:p-8 text-center mx-2 sm:mx-4">
+                  <div className="text-6xl sm:text-8xl font-bold mb-4 animate-pulse text-blue-400">
+                    {countdown}
+                  </div>
+                  <p className="text-lg sm:text-xl font-medium mb-2">
+                    {currentPhase === 'front-countdown' ? 'Preparing Front Side Scan' : 'Preparing Back Side Scan'}
+                  </p>
+                  <p className="text-sm sm:text-base text-gray-300">
+                    Position your card in the frame
+                  </p>
+                </div>
+              </div>
+            )}
             
             {/* Detection Overlay */}
             {detectionActive && (
@@ -511,6 +577,18 @@ const CardDetectionApp = () => {
             </div>
           )}
 
+          {currentPhase === 'front-countdown' && (
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 md:w-20 sm:h-16 md:h-20 text-blue-500 mx-auto mb-3 sm:mb-6 flex items-center justify-center">
+                <Camera className="w-full h-full" />
+              </div>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-6 text-blue-600">Get Ready!</h2>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-8 max-w-2xl mx-auto px-2">
+                Front side scanning will begin in <span className="font-bold text-blue-600">{countdown}</span> seconds. Make sure your card is positioned in the frame.
+              </p>
+            </div>
+          )}
+
           {currentPhase === 'flip-card' && (
             <div className="text-center">
               <RotateCcw className="w-12 h-12 sm:w-16 md:w-20 sm:h-16 md:h-20 text-green-500 mx-auto mb-3 sm:mb-6" />
@@ -518,12 +596,6 @@ const CardDetectionApp = () => {
               <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-8 max-w-2xl mx-auto px-2">
                 Please flip your card to show the back side and click the button below to scan the back.
               </p>
-              {countdown > 0 && (
-                <div className="mb-4 sm:mb-6">
-                  <div className="text-2xl sm:text-4xl font-bold text-blue-600 mb-2">{countdown}</div>
-                  <p className="text-sm sm:text-base text-gray-600">Auto-starting back side scan...</p>
-                </div>
-              )}
               <button
                 onClick={startBackSideDetection}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-6 sm:px-10 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-xl transition-colors flex items-center mx-auto"
@@ -531,6 +603,18 @@ const CardDetectionApp = () => {
                 <Camera className="w-4 h-4 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                 Start Back Side Scan
               </button>
+            </div>
+          )}
+
+          {currentPhase === 'back-countdown' && (
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 md:w-20 sm:h-16 md:h-20 text-purple-500 mx-auto mb-3 sm:mb-6 flex items-center justify-center">
+                <Camera className="w-full h-full" />
+              </div>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-6 text-purple-600">Get Ready!</h2>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-8 max-w-2xl mx-auto px-2">
+                Back side scanning will begin in <span className="font-bold text-purple-600">{countdown}</span> seconds. Make sure your card is positioned in the frame.
+              </p>
             </div>
           )}
 
