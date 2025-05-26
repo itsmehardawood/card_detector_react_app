@@ -615,18 +615,22 @@ const CardDetectionApp = () => {
   };
 
   useEffect(() => {
-    initializeCamera();
-    return () => {
-      // Cleanup camera stream
-      if (videoRef.current?.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-      }
-      if (captureIntervalRef.current) {
-        clearInterval(captureIntervalRef.current);
-      }
-    };
-  }, []);
+  const videoElement = videoRef.current; // ✅ Capture the ref once
+  initializeCamera();
+
+  return () => {
+    // Cleanup camera stream
+    if (videoElement?.srcObject) {
+      const tracks = videoElement.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+    }
+
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+  };
+}, []);
+
 
   // Capture frame from video
   const captureFrame = () => {
@@ -1056,7 +1060,7 @@ const CardDetectionApp = () => {
               <CreditCard className="w-12 h-12 sm:w-16 md:w-20 sm:h-16 md:h-20 text-blue-500 mx-auto mb-3 sm:mb-6" />
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-6 text-black">Ready to Scan Card</h2>
               <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-8 max-w-2xl mx-auto px-2">
-                Place the front side of your card in the camera view and click start. We'll capture 6 frames for analysis.
+                Place the front side of your card in the camera view and click start. 
               </p>
               <button
                 onClick={startFrontSideDetection}
