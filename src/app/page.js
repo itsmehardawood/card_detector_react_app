@@ -916,7 +916,7 @@ const CardDetectionApp = () => {
 
     let frameNumber = 0;
     let validationComplete = false;
-    const maxValidationTime = 30000; // 30 seconds max
+    const maxValidationTime = 50000; // 30 seconds max
     const startTime = Date.now();
 
     // Ensure video is ready
