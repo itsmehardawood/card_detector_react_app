@@ -1566,7 +1566,7 @@ const CardDetectionApp = () => {
               <Shield className="w-12 h-12 sm:w-16 md:w-20 sm:h-16 md:h-20 text-blue-500 mx-auto mb-3 sm:mb-6" />
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-6 text-black">Ready to Validate Card</h2>
               <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-8 max-w-2xl mx-auto px-2">
-                First, we'll validate your card to ensure it's properly positioned and recognized as a physical card.
+                First, we will validate your card to ensure it is properly positioned and recognized as a physical card.
               </p>
               <button
                 onClick={startCardValidation}
