@@ -114,9 +114,11 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
       </div>
 
       {/* Raw JSON Response Viewer */}
-      <JsonResponseViewer data={finalOcrResults} />
 
-      <div className="text-center mt-6">
+{/*       
+      <JsonResponseViewer data={finalOcrResults} /> */}
+
+      <div className="text-center my-4">
         <button
           onClick={onReset}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
