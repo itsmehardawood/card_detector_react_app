@@ -681,6 +681,9 @@
 // export default CardDetectionApp;
 
 
+
+
+
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, CreditCard, CheckCircle, RotateCcw, Phone, Shield, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -866,7 +869,7 @@ const CardDetectionApp = () => {
         
         console.log(`Sending frame ${frameNumber} for ${phase} phase to API (attempt ${attempt})...`);
         
-        const response = await fetch('https://700b-110-39-39-254.ngrok-free.app/detect', {
+        const response = await fetch('https://cardapp.hopto.org/detect', {
           method: 'POST',
           body: formData,
           headers: {
@@ -974,7 +977,7 @@ const CardDetectionApp = () => {
 
     // Start validation frame processing
     processValidationFrame(); // Initial frame
-    validationIntervalRef.current = setInterval(processValidationFrame, 1000); // Every second
+    validationIntervalRef.current = setInterval(processValidationFrame, 1200); // Every second
 
     // Timeout for validation
     setTimeout(() => {
@@ -1094,7 +1097,7 @@ const CardDetectionApp = () => {
       processFrame();
       
       // Then set up interval for subsequent frames
-      captureIntervalRef.current = setInterval(processFrame, 1000); // Send frames every 1 second
+      captureIntervalRef.current = setInterval(processFrame, 1200); // Send frames every 1 second
       
       // Timeout after 100 seconds
       timeoutId = setTimeout(() => {
@@ -1215,7 +1218,7 @@ const CardDetectionApp = () => {
       processFrame();
       
       // Then set up interval for subsequent frames
-      captureIntervalRef.current = setInterval(processFrame, 1000); // Send frames every 1 second
+      captureIntervalRef.current = setInterval(processFrame, 1200); // Send frames every 1 second
       
       // Timeout after 45 seconds (15 frames * 3 seconds per frame max)
       timeoutId = setTimeout(() => {
@@ -1453,7 +1456,7 @@ const CardDetectionApp = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-700 to-black p-4 sm:p-4">
       <div className="container mx-auto max-w-4xl">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-center mb-4 sm:mb-8 text-gray-100">
+        <h1 className="text-xl bg-white p-2 sm:text-2xl lg:text-3xl mb-5  rounded-md font-bold text-center mb-4 sm:mb-8 text-gray-900">
           Card Detection System
         </h1>
 
@@ -1472,15 +1475,15 @@ const CardDetectionApp = () => {
               style={{ display: 'none' }}
             />
             
-            {/* Card Detection Border Overlay - Responsive */}
+            {/* Card Detection Border Overlay - Updated for mobile */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="relative">
                 <div 
                   className="rounded-xl"
                   style={{
-                    // Responsive dimensions using clamp()
-                    width: 'clamp(200px, 60vw, 350px)',
-                    height: 'clamp(120px, 35vw, 200px)',
+                    // Updated responsive dimensions - wider and taller on mobile
+                    width: 'clamp(250px, 70vw, 350px)',
+                    height: 'clamp(150px, 42vw, 200px)',
                     transition: 'border-color 0.3s ease'
                   }}
                 >
@@ -1490,15 +1493,15 @@ const CardDetectionApp = () => {
                   <div className="absolute -bottom-1 -left-1 sm:-left-2 w-4 h-4 sm:w-6 md:w-8 sm:h-6 md:h-8 border-l-2 sm:border-l-4 border-b-2 sm:border-b-4 border-white rounded-bl-lg"></div>
                   <div className="absolute -bottom-1 -right-1 sm:-right-2 w-4 h-4 sm:w-6 md:w-8 sm:h-6 md:h-8 border-r-2 sm:border-r-4 border-b-2 sm:border-b-4 border-white rounded-br-lg"></div>
                 </div>
-                
-                {/* Instruction text below the frame - Responsive */}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 sm:mt-4">
-                  <div className="bg-opacity-75 rounded-lg px-2 sm:px-4 py-1 sm:py-2 text-center">
-                    <p className="text-white text-xs sm:text-sm font-medium whitespace-nowrap">
-                      Place card within frame
-                    </p>
-                  </div>
-                </div>
+              </div>
+            </div>
+
+            {/* Instruction text inside video with black background */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+              <div className="bg-black bg-opacity-75 rounded-lg px-3 sm:px-4 py-2 sm:py-2 text-center">
+                <p className="text-white text-xs sm:text-sm font-medium whitespace-nowrap">
+                  Place card within frame
+                </p>
               </div>
             </div>
 
@@ -1537,7 +1540,7 @@ const CardDetectionApp = () => {
                   </p>
                   
                   {/* Front side specific status */}
-                  {currentPhase === 'front' && (
+                  {/* {currentPhase === 'front' && (
                     <div className="text-xs sm:text-sm space-y-1">
                       <p className={frontScanState.framesBuffered >= 6 ? 'text-green-400' : 'text-yellow-400'}>
                         Frames: {frontScanState.framesBuffered}/6
@@ -1546,7 +1549,7 @@ const CardDetectionApp = () => {
                         Chip: {frontScanState.chipDetected ? 'Detected' : 'Not Detected'}
                       </p>
                     </div>
-                  )}
+                  )} */}
                   
                   {isProcessing && (
                     <p className="text-green-400 text-xs sm:text-sm">
@@ -1650,7 +1653,7 @@ const CardDetectionApp = () => {
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-6 text-blue-600">Scanning Front Side</h2>
               
               {/* Front Scan Status */}
-              <div className="mb-6 p-3 sm:p-4 bg-blue-50 border text-black border-blue-200 rounded-lg">
+              {/* <div className="mb-6 p-3 sm:p-4 bg-blue-50 border text-black border-blue-200 rounded-lg">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Frames Captured:</span>
@@ -1665,7 +1668,7 @@ const CardDetectionApp = () => {
                     </span>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-8 max-w-2xl mx-auto px-2">
                 Please ensure the chip is clearly visible. We need both 6 frames and chip detection to proceed.
