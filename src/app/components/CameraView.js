@@ -61,14 +61,14 @@ const CameraView = ({
         {/* Card Detection Border Overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="relative">
-            <div 
-              className="rounded-xl"
-              style={{
-                width: 'clamp(250px, 70vw, 350px)',
-                height: 'clamp(150px, 42vw, 200px)',
-                transition: 'border-color 0.3s ease'
-              }}
-            >
+          <div 
+  className="rounded-xl transition-all duration-300"
+  style={{
+    width: 'clamp(260px, 75vw, 360px)',
+    height: 'clamp(160px, 45vw, 220px)',
+  }}
+>
+
               {/* Corner indicators */}
               <div className="absolute -top-6 -left-1 sm:-left-2 w-4 h-4 sm:w-6 md:w-8 sm:h-6 md:h-8 border-l-2 sm:border-l-4 border-t-2 sm:border-t-4 border-white rounded-tl-lg"></div>
               <div className="absolute -top-6 -right-1 sm:-right-2 w-4 h-4 sm:w-6 md:w-8 sm:h-6 md:h-8 border-r-2 sm:border-r-4 border-t-2 sm:border-t-4 border-white rounded-tr-lg"></div>
