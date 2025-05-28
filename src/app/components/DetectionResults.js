@@ -52,6 +52,19 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
                 </div>
               </div>
             )}
+
+
+             {final_ocr.bank_name && (
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded border gap-2">
+                <span className="font-medium text-sm sm:text-base">Bank Name</span>
+                <div className="text-left sm:text-right">
+                  <div className="font-mono text-sm sm:text-base">{final_ocr.bank_name.value}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">
+                    Confidence: {Math.round(final_ocr.bank_name.confidence * 100)}%
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -115,8 +128,8 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
 
       {/* Raw JSON Response Viewer */}
 
-{/*       
-      <JsonResponseViewer data={finalOcrResults} /> */}
+       
+      <JsonResponseViewer data={finalOcrResults} /> 
 
       <div className="text-center my-4">
         <button
