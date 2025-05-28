@@ -129,7 +129,7 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
       {/* Raw JSON Response Viewer */}
 
        
-      <JsonResponseViewer data={finalOcrResults} /> 
+      {/* <JsonResponseViewer data={finalOcrResults} />  */}
 
       <div className="text-center my-4">
         <button

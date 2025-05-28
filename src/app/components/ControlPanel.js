@@ -429,20 +429,6 @@ const ControlPanel = ({
                 Try Again
               </button>
             )}
-            
-            {/* <button
-              onClick={onStartOver}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Start Over
-            </button> */}
-            
-            {/* <button
-              onClick={onReset}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              New Session
-            </button> */}
           </div>
         </div>
       </div>
@@ -460,16 +446,6 @@ const ControlPanel = ({
             <p className="text-red-700 mb-3 font-bold">Contact on</p>
             <p className='text-red-700  '>Email: support@lollicash.com</p>
             <p className="text-red-700 mb-3">Phone: +1 6464509293</p>
-      
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {/* <button
-              onClick={onReset}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Start New Session
-            </button> */}
           </div>
         </div>
       </div>
@@ -479,6 +455,7 @@ const ControlPanel = ({
   // Regular control panel for active phases
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+      {/* Main Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
         
         {/* Start Validation Button */}
@@ -513,61 +490,76 @@ const ControlPanel = ({
             {isActive ? 'Scanning Back...' : 'Scan Back Side'}
           </button>
         )}
+      </div>
 
-        {/* Stop Button - shown during active detection */}
-        {isActive && !maxAttemptsReached && (
+      {/* Control Buttons Row - Always show when not in idle phase */}
+      {currentPhase !== 'idle' && (
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mt-4">
+          {/* Stop Button - enabled only during active detection */}
           <button
             onClick={onStop}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors w-full sm:w-auto"
+            disabled={!isActive || maxAttemptsReached}
+            className="bg-red-600 hover:bg-red-700 disabled:bg-red-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors w-full sm:w-auto"
           >
-            Stop Detection
+            {isActive ? 'Stop Detection' : 'Stop Detection'}
           </button>
-        )}
 
-        {/* Reset Button - always available except during active detection */}
-        {!isActive && currentPhase !== 'idle' && (
+          {/* Reset Button - always enabled when visible */}
           <button
             onClick={onReset}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium transition-colors w-full sm:w-auto"
+            disabled={maxAttemptsReached}
+            className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-medium transition-colors w-full sm:w-auto"
           >
             Reset
           </button>
-        )}
-      </div>
-
-      {/* Status Messages */}
-      {countdown > 0 && (
-        <div className="mt-4 text-center">
-          <p className="text-lg font-semibold text-blue-600">
-            Starting in {countdown}...
-          </p>
         </div>
       )}
 
-      {isProcessing && !countdown && (
-        <div className="mt-4 text-center">
+      {/* Status Messages Section - Always present to prevent UI jumping */}
+      <div className="mt-4 text-center min-h-[60px] flex items-center justify-center">
+        {countdown > 0 && (
+          <p className="text-lg font-semibold text-blue-600">
+            Starting in {countdown}...
+          </p>
+        )}
+
+        {isProcessing && !countdown && (
           <div className="flex items-center justify-center space-x-2">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
             <p className="text-blue-600 font-medium">Processing frame...</p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Progress Information */}
-      {/* {currentPhase === 'validation' && validationState.movementMessage && (
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">{validationState.movementMessage}</p>
-        </div>
-      )} */}
-{/* 
-      {currentPhase === 'front' && (
-        <div className="mt-4 text-center">
-          <div className="text-sm text-gray-600 space-y-1">
-            <p>Frames: {frontScanState.framesBuffered}/6</p>
-            <p>Chip: {frontScanState.chipDetected ? '✓' : '✗'} | Bank Logo: {frontScanState.bankLogoDetected ? '✓' : '✗'}</p>
+        {/* Success Messages */}
+        {!isProcessing && !countdown && currentPhase === 'ready-for-front' && (
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">✓</span>
+            </div>
+            <p className="text-green-600 text-lg">Card validation successful!</p>
           </div>
-        </div>
-      )} */}
+        )}
+
+        {!isProcessing && !countdown && currentPhase === 'ready-for-back' && (
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">✓</span>
+            </div>
+            <p className="text-green-600 text-lg">Front side detected successfully!</p>
+          </div>
+        )}
+
+        {/* Default placeholder for consistent height */}
+        {!isProcessing && !countdown && 
+         currentPhase !== 'idle' && 
+         currentPhase !== 'ready-for-front' && 
+         currentPhase !== 'ready-for-back' && (
+          <div className="text-transparent select-none">
+            {/* Invisible placeholder to maintain height */}
+            Processing frame...
+          </div>
+        )}
+      </div>
 
       {/* Requirements not met warning */}
       {currentPhase === 'ready-for-back' && !frontScanState.canProceedToBack && (
