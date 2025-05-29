@@ -219,7 +219,7 @@ const CameraView = ({
       case "results":
         return "Detection complete! Check your results below.";
       case "error":
-        return "Detection failed. Please check the error message and try again.";
+        return "";
       case "max-attempts-reached":
         return "Maximum attempts reached. Please contact support.";
       default:

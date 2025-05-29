@@ -9,13 +9,13 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-1 sm:p-6 max-w-4xl mx-auto">
       <h2 className="text-2xl sm:text-3xl font-bold text-center my-4 sm:my-7 text-green-600">
-        Card Detection Complete
+        Card Security Scan Successful
       </h2>
       
       {/* Final OCR Results */}
       {final_ocr && (
         <div className="mb-6 p-3 sm:p-4 bg-green-50 border text-black border-green-200 rounded-lg">
-          <h3 className="text-base sm:text-lg font-semibold mb-3 text-green-700">Final OCR Results</h3>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 text-green-700">Scanning and Detection Results</h3>
           <div className="grid gap-3">
             {final_ocr.cardholder_name && (
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded border gap-2">
@@ -87,7 +87,7 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
             <div className="flex justify-between">
               <span>Chip:</span>
               <span className={chip ? 'text-green-600' : 'text-red-600'}>
-                {chip ? 'Present' : 'Not Present'}
+                {chip ? 'Detected' : 'Not Detected'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -113,7 +113,7 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
             <div className="flex justify-between">
               <span>Signature Strip:</span>
               <span className={signstrip ? 'text-green-600' : 'text-red-600'}>
-                {signstrip ? 'Present' : 'Not Present'}
+                {signstrip ? 'Detected' : 'Not Detected'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -129,7 +129,7 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
       {/* Raw JSON Response Viewer */}
 
        
-      {/* <JsonResponseViewer data={finalOcrResults} />  */}
+      <JsonResponseViewer data={finalOcrResults} /> 
 
       <div className="text-center my-4">
         <button
