@@ -118,8 +118,8 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
             </div>
             <div className="flex justify-between">
               <span>Customer Service:</span>
-              <span className={customer_service_detected ? 'text-green-600' : 'text-red-600'}>
-                {customer_service_detected ? 'Detected' : 'Not Detected'}
+              <span className={final_ocr.customer_service.detected? 'text-green-600' : 'text-red-600'}>
+                {final_ocr.customer_service.detected?'Detected' : 'Not Detected'}
               </span>
             </div>
           </div>
@@ -129,7 +129,7 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
       {/* Raw JSON Response Viewer */}
 
        
-      {/* <JsonResponseViewer data={finalOcrResults} />  */}
+      <JsonResponseViewer data={finalOcrResults} /> 
 
       <div className="text-center my-4">
         <button

@@ -13,7 +13,7 @@ import CameraView from './components/CameraView';
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 3;
-const DETECTION_TIMEOUT = 10000; // 10 seconds
+const DETECTION_TIMEOUT = 20000; // 10 seconds
 
 const CardDetectionApp = () => {
   // State management
