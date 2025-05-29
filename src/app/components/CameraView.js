@@ -209,13 +209,13 @@ const CameraView = ({
       case "front-countdown":
         return `Get ready to scan front side... ${countdown}`;
       case "front":
-        return "Keep the front side steady. Scanning for chip and bank logo...";
+        return "Keep front side in the frame. While Processing...";
       case "ready-for-back":
         return 'Now flip to the BACK side of your card and click "Scan Back Side"';
       case "back-countdown":
         return `Get ready to scan back side... ${countdown}`;
       case "back":
-        return "Keep the back side steady. Scanning for security features...";
+        return "Keep Back side in the frame. While Processing...";
       case "results":
         return "Detection complete! Check your results below.";
       case "error":
