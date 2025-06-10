@@ -23,7 +23,7 @@ export const useDetection = (
     }
     
     let lastApiResponse = null;
-    const maxFrames = 70;
+    const maxFrames = 80;
     
     if (!videoRef.current || videoRef.current.readyState < 2) {
       throw new Error('Video not ready for capture');
@@ -119,7 +119,7 @@ export const useDetection = (
       };
       
       processFrame();
-      captureIntervalRef.current = setInterval(processFrame, 1200);
+      captureIntervalRef.current = setInterval(processFrame, 1500);
       
       timeoutId = setTimeout(() => {
         if (!isComplete) {
@@ -179,7 +179,7 @@ export const useDetection = (
     }
     
     let lastApiResponse = null;
-    const maxFrames = 40;
+    const maxFrames = 100;
     const requiredBackSideFeatures = 3;
     
     if (!videoRef.current || videoRef.current.readyState < 2) {
@@ -313,7 +313,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 100000);
+      }, 120000);
     });
   };
 
