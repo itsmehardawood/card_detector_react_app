@@ -13,7 +13,7 @@ import CameraView from './components/CameraView';
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 3;
-const DETECTION_TIMEOUT = 17000; // 17 seconds
+const DETECTION_TIMEOUT = 40000; // 17 seconds
 
 const CardDetectionApp = () => {
   // State management
@@ -243,7 +243,7 @@ const CardDetectionApp = () => {
 
     let frameNumber = 0;
     let validationComplete = false;
-    const maxValidationTime = 18000;
+    const maxValidationTime = 45000;
     const startTime = Date.now();
 
     // Start detection timeout
@@ -311,7 +311,7 @@ const CardDetectionApp = () => {
     };
 
     processValidationFrame();
-    validationIntervalRef.current = setInterval(processValidationFrame, 1200);
+    validationIntervalRef.current = setInterval(processValidationFrame, 1500);
 
     setTimeout(() => {
       if (!validationComplete && !stopRequestedRef.current) {
