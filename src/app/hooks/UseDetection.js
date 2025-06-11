@@ -23,7 +23,7 @@ export const useDetection = (
     }
     
     let lastApiResponse = null;
-    const maxFrames = 100;
+    const maxFrames = 70;
     
     if (!videoRef.current || videoRef.current.readyState < 2) {
       throw new Error('Video not ready for capture');
@@ -179,7 +179,7 @@ export const useDetection = (
     }
     
     let lastApiResponse = null;
-    const maxFrames = 80;
+    const maxFrames = 40;
     const requiredBackSideFeatures = 3;
     
     if (!videoRef.current || videoRef.current.readyState < 2) {
