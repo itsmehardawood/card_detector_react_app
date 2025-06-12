@@ -243,7 +243,7 @@ const CardDetectionApp = () => {
 
     let frameNumber = 0;
     let validationComplete = false;
-    const maxValidationTime = 45000;
+    const maxValidationTime = 27000;
     const startTime = Date.now();
 
     // Start detection timeout
