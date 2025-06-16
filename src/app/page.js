@@ -243,7 +243,7 @@ const CardDetectionApp = () => {
 
     let frameNumber = 0;
     let validationComplete = false;
-    const maxValidationTime = 45000;
+    const maxValidationTime = 27000;
     const startTime = Date.now();
 
     // Start detection timeout
@@ -254,62 +254,110 @@ const CardDetectionApp = () => {
       return;
     }
 
-    const processValidationFrame = async () => {
-      try {
-        if (stopRequestedRef.current || validationComplete || (Date.now() - startTime) > maxValidationTime) {
-          return;
-        }
+const processValidationFrame = async () => {
+  try {
+    if (stopRequestedRef.current || validationComplete || (Date.now() - startTime) > maxValidationTime) {
+      return;
+    }
 
-        const frame = await captureFrame(videoRef, canvasRef);
-        if (!frame || frame.size === 0) {
-          return;
-        }
+    const frame = await captureFrame(videoRef, canvasRef);
+    if (!frame || frame.size === 0) {
+      return;
+    }
 
-        frameNumber++;
-        setIsProcessing(true);
+    frameNumber++;
+    setIsProcessing(true);
 
-        const apiResponse = await sendFrameToAPI(frame, 'validation', currentSessionId, frameNumber);
-        
-        if (stopRequestedRef.current) {
-          setIsProcessing(false);
-          return;
-        }
-        
-        const newValidationState = {
-          physicalCard: apiResponse.physical_card || false,
-          movementState: apiResponse.movement_state || null,
-          movementMessage: apiResponse.movement_message || '',
-          validationComplete: apiResponse.physical_card || false
-        };
-
-        setValidationState(newValidationState);
-        setIsProcessing(false);
-
-        if (newValidationState.validationComplete && !stopRequestedRef.current) {
-          validationComplete = true;
-          clearDetectionTimeout();
-          
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-          
-          // Reset attempt count on successful validation
-          setAttemptCount(0);
-          setCurrentOperation('');
-          
-          setTimeout(() => {
-            if (!stopRequestedRef.current) {
-              setCurrentPhase('ready-for-front');
-            }
-          }, 2000);
-        }
-
-      } catch (error) {
-        console.error('Validation frame processing error:', error);
-        setIsProcessing(false);
+    const apiResponse = await sendFrameToAPI(frame, 'validation', currentSessionId, frameNumber);
+    
+    if (stopRequestedRef.current) {
+      setIsProcessing(false);
+      return;
+    }
+    
+    // FIXED: Check for validation failures in both message_state AND movement_state
+    if (apiResponse.message_state === "VALIDATION_FAILED" || 
+        apiResponse.movement_state === "VALIDATION_FAILED") {
+      validationComplete = true;
+      clearDetectionTimeout();
+      
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
       }
+      
+      setIsProcessing(false);
+      
+      // Use appropriate error message based on which field contains the failure
+      const errorMsg = apiResponse.message || 
+                      (apiResponse.movement_state === "VALIDATION_FAILED" ? 
+                       'Card validation failed. Please ensure you have a physical card and try again.' : 
+                       'Validation failed. Please try again.');
+      
+      handleDetectionFailure(errorMsg, 'validation');
+      return;
+    }
+
+    // FIXED: Check for validation success in both fields
+    if (apiResponse.message_state === "VALIDATION_PASSED" || 
+        apiResponse.movement_state === "VALIDATION_PASSED") {
+      validationComplete = true;
+      clearDetectionTimeout();
+      
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+      }
+      
+      setIsProcessing(false);
+      // Reset attempt count on successful validation
+      setAttemptCount(0);
+      setCurrentOperation('');
+      
+      setTimeout(() => {
+        if (!stopRequestedRef.current) {
+          setCurrentPhase('ready-for-front');
+        }
+      }, 2000);
+      return;
+    }
+    
+    // Update validation state - show failure message immediately if movement_state indicates failure
+    const newValidationState = {
+      physicalCard: apiResponse.physical_card || false,
+      movementState: apiResponse.movement_state || null,
+      movementMessage: apiResponse.movement_message || 
+                      (apiResponse.movement_state === "VALIDATION_FAILED" ? 
+                       'Validation Failed' : ''),
+      validationComplete: apiResponse.physical_card || false
     };
 
+    setValidationState(newValidationState);
+    setIsProcessing(false);
+
+    // Keep the existing logic for backward compatibility
+    if (newValidationState.validationComplete && !stopRequestedRef.current) {
+      validationComplete = true;
+      clearDetectionTimeout();
+      
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+      }
+      
+      // Reset attempt count on successful validation
+      setAttemptCount(0);
+      setCurrentOperation('');
+      
+      setTimeout(() => {
+        if (!stopRequestedRef.current) {
+          setCurrentPhase('ready-for-front');
+        }
+      }, 2000);
+    }
+
+  } catch (error) {
+    console.error('Validation frame processing error:', error);
+    setIsProcessing(false);
+  }
+};
     processValidationFrame();
     validationIntervalRef.current = setInterval(processValidationFrame, 1500);
 
