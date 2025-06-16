@@ -11,7 +11,8 @@ export const useDetection = (
   setIsProcessing,
   setCurrentPhase,
   setErrorMessage,
-  setFrontScanState
+  setFrontScanState,
+  stopRequestedRef // Added this parameter from your main component
 ) => {
   const captureIntervalRef = useRef(null);
 
@@ -48,7 +49,8 @@ export const useDetection = (
       
       const processFrame = async () => {
         try {
-          if (isComplete) return;
+          // FIXED: Check stopRequestedRef instead of abortControllerRef
+          if (isComplete || stopRequestedRef.current) return;
           
           const frame = await captureFrame(videoRef, canvasRef);
           
@@ -58,6 +60,29 @@ export const useDetection = (
             setIsProcessing(true);
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
+              
+              // FIXED: Check for validation states in both message_state AND movement_state
+              if (apiResponse.message_state === "VALIDATION_FAILED" || 
+                  apiResponse.movement_state === "VALIDATION_FAILED") {
+                isComplete = true;
+                cleanup();
+                const errorMsg = apiResponse.message || 
+                                apiResponse.movement_message || 
+                                'Validation failed. Please try again.';
+                setErrorMessage(errorMsg);
+                setCurrentPhase('error');
+                reject(new Error('Validation failed'));
+                return;
+              }
+
+              if (apiResponse.message_state === "VALIDATION_PASSED" || 
+                  apiResponse.movement_state === "VALIDATION_PASSED") {
+                isComplete = true;
+                cleanup();
+                setCurrentPhase('ready-for-front');
+                resolve(apiResponse);
+                return;
+              }
               
               lastApiResponse = apiResponse;
               setIsProcessing(false);
@@ -205,7 +230,8 @@ export const useDetection = (
       
       const processFrame = async () => {
         try {
-          if (isComplete) return;
+          // FIXED: Check stopRequestedRef instead of abortControllerRef
+          if (isComplete || stopRequestedRef.current) return;
           
           const frame = await captureFrame(videoRef, canvasRef);
           
@@ -215,6 +241,45 @@ export const useDetection = (
             setIsProcessing(true);
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
+              
+              // Check for validation states first (for validation phase)
+              if (phase === 'validation') {
+                if (apiResponse.message_state === "VALIDATION_FAILED" || 
+                    apiResponse.movement_state === "VALIDATION_FAILED") {
+                  isComplete = true;
+                  cleanup();
+                  const errorMsg = apiResponse.message || 
+                                  apiResponse.movement_message || 
+                                  'Validation failed. Please try again.';
+                  setErrorMessage(errorMsg);
+                  setCurrentPhase('error');
+                  reject(new Error('Validation failed'));
+                  return;
+                }
+
+                if (apiResponse.message_state === "VALIDATION_PASSED" || 
+                    apiResponse.movement_state === "VALIDATION_PASSED") {
+                  isComplete = true;
+                  cleanup();
+                  setCurrentPhase('ready-for-front');
+                  resolve(apiResponse);
+                  return;
+                }
+              }
+
+              // General validation state check for all phases
+              if (apiResponse.message_state === "VALIDATION_FAILED" || 
+                  apiResponse.movement_state === "VALIDATION_FAILED") {
+                isComplete = true;
+                cleanup();
+                const errorMsg = apiResponse.message || 
+                                apiResponse.movement_message || 
+                                'Validation failed. Please try again.';
+                setErrorMessage(errorMsg);
+                setCurrentPhase('error');
+                reject(new Error('Validation failed'));
+                return;
+              }
               
               lastApiResponse = apiResponse;
               setIsProcessing(false);
@@ -234,7 +299,7 @@ export const useDetection = (
                   resolve(apiResponse);
                   return;
                 }
-              } else if (phase !== 'back' && bufferedFrames >= 6) {
+              } else if (phase !== 'back' && phase !== 'validation' && bufferedFrames >= 6) {
                 isComplete = true;
                 cleanup();
                 console.log(`${phase} side complete - 6 frames buffered`);
