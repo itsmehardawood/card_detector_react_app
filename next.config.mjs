@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // basePath: '/securityscan', // temporarily remove
+  basePath: '/securityscan',
 }
 
 export default nextConfig;
