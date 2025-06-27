@@ -14,7 +14,7 @@ const CameraView = ({
   const getPhaseInstructions = () => {
     switch (currentPhase) {
       case "idle":
-        return 'Position your card in the camera view and click "Start Validation"';
+        return 'Position your card in camera view showing the frontside, avoid dark place and move the camera closer to the card.';
       case "validation":
         return "Keep your card steady. Validating physical card...";
       case "ready-for-front":
@@ -24,13 +24,13 @@ const CameraView = ({
       case "front":
         return "Keep front side in the frame. While Processing...";
       case "ready-for-back":
-        return 'Now flip to the BACK side of your card and click "Scan Back Side"';
+        return 'Turn to the backside and start scanning card"';
       case "back-countdown":
         return `Get ready to scan back side... ${countdown}`;
       case "back":
         return "Keep Back side in the frame. While Processing...";
       case "results":
-        return "Detection complete! Check your results below.";
+        return "Thank you, your card Scan is completed successfully";
       case "error":
         return "";
       case "max-attempts-reached":
