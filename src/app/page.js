@@ -4,15 +4,137 @@ import React, { useState, useEffect } from 'react';
 import { Smartphone, Monitor, Scan, Shield, CreditCard } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
-const StartPage = () => {
-  const [merchantId, setMerchantId] = useState('');
-  const [authToken, setAuthToken] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [deviceType, setDeviceType] = useState('');
-  const [showQR, setShowQR] = useState(false);
-  const [scanUrl, setScanUrl] = useState('');
+// Import components
+// Replace the imports section at the top of your page.js file with this:
 
+// Import components
+import ControlPanel from './components/ControlPanel';
+import StatusInformation from './components/StatusInfo';
+import CameraView from './components/CameraView';
+
+// Import utilities
+import { initializeCamera, captureFrame, cleanupCamera } from './utils/CameraUtils';
+import { sendFrameToAPI } from './utils/apiService';
+import { useDetection } from './hooks/UseDetection';
+
+
+// Constants for attempt limits and timeouts
+const MAX_ATTEMPTS = 3;
+const DETECTION_TIMEOUT = 40000; // 17 seconds
+
+const CardDetectionApp = () => {
+  // State management
+  const [currentPhase, setCurrentPhase] = useState('idle');
+  const [detectionActive, setDetectionActive] = useState(false);
+  const [finalOcrResults, setFinalOcrResults] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  
+  // New state for attempt tracking
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [maxAttemptsReached, setMaxAttemptsReached] = useState(false);
+  const [currentOperation, setCurrentOperation] = useState(''); // 'validation', 'front', 'back'
+  
+  const [validationState, setValidationState] = useState({
+    physicalCard: false,
+    movementState: null,
+    movementMessage: '',
+    validationComplete: false
+  });
+  
+  // Updated frontScanState to include bankLogoDetected
+  const [frontScanState, setFrontScanState] = useState({
+    framesBuffered: 0,
+    chipDetected: false,
+    bankLogoDetected: false,
+    canProceedToBack: false
+  });
+  
+  // Refs
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const capturedFrames = useRef([]);
+  const countdownIntervalRef = useRef(null);
+  const validationIntervalRef = useRef(null);
+  const stopRequestedRef = useRef(false);
+  const detectionTimeoutRef = useRef(null);
+
+  // Custom hook for detection logic
+  const { captureAndSendFramesFront, captureAndSendFrames, captureIntervalRef } = useDetection(
+    videoRef,
+    canvasRef,
+    sessionId,
+    setSessionId,
+    setIsProcessing,
+    setCurrentPhase,
+    setErrorMessage,
+    setFrontScanState,
+    stopRequestedRef
+  );
+
+  // Helper function to handle detection timeout
+  const startDetectionTimeout = (operation) => {
+    if (detectionTimeoutRef.current) {
+      clearTimeout(detectionTimeoutRef.current);
+    }
+    
+    detectionTimeoutRef.current = setTimeout(() => {
+      if (!stopRequestedRef.current && (detectionActive || isProcessing)) {
+        handleDetectionFailure(`${operation} detection timeout. No detection occurred within 10 seconds.`, operation);
+      }
+    }, DETECTION_TIMEOUT);
+  };
+
+  // Helper function to clear detection timeout
+  const clearDetectionTimeout = () => {
+    if (detectionTimeoutRef.current) {
+      clearTimeout(detectionTimeoutRef.current);
+      detectionTimeoutRef.current = null;
+    }
+  };
+
+  // Helper function to handle detection failures with attempt tracking
+  const handleDetectionFailure = (message, operation) => {
+    clearDetectionTimeout();
+    stopRequestedRef.current = true;
+    
+    // Clear all intervals
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+      captureIntervalRef.current = null;
+    }
+    
+    if (validationIntervalRef.current) {
+      clearInterval(validationIntervalRef.current);
+      validationIntervalRef.current = null;
+    }
+    
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    
+    setDetectionActive(false);
+    setIsProcessing(false);
+    setCountdown(0);
+    
+    const newAttemptCount = attemptCount + 1;
+    setAttemptCount(newAttemptCount);
+    setCurrentOperation(operation);
+    
+    if (newAttemptCount >= MAX_ATTEMPTS) {
+      setMaxAttemptsReached(true);
+      setErrorMessage('Maximum attempts reached. Please contact support for assistance.');
+      setCurrentPhase('max-attempts-reached');
+    } else {
+      setErrorMessage(`${message} (Attempt ${newAttemptCount}/${MAX_ATTEMPTS})`);
+      setCurrentPhase('error');
+    }
+  };
+
+  // Initialize camera on component mount
   useEffect(() => {
     // Detect device type
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -106,6 +228,300 @@ const StartPage = () => {
     }
   };
 
+  // Card validation process with timeout handling
+  const startCardValidation = async () => {
+    if (maxAttemptsReached) return;
+    
+    setCurrentPhase('validation');
+    setErrorMessage('');
+    stopRequestedRef.current = false;
+    setValidationState({
+      physicalCard: false,
+      movementState: null,
+      movementMessage: 'Starting validation...',
+      validationComplete: false
+    });
+
+    const currentSessionId = `session_${Date.now()}`;
+    setSessionId(currentSessionId);
+
+    let frameNumber = 0;
+    let validationComplete = false;
+    const maxValidationTime = 27000;
+    const startTime = Date.now();
+
+    // Start detection timeout
+    startDetectionTimeout('Validation');
+
+    if (!videoRef.current || videoRef.current.readyState < 2) {
+      handleDetectionFailure('Video not ready for capture', 'validation');
+      return;
+    }
+
+const processValidationFrame = async () => {
+  try {
+    if (stopRequestedRef.current || validationComplete || (Date.now() - startTime) > maxValidationTime) {
+      return;
+    }
+
+    const frame = await captureFrame(videoRef, canvasRef);
+    if (!frame || frame.size === 0) {
+      return;
+    }
+
+    frameNumber++;
+    setIsProcessing(true);
+
+    const apiResponse = await sendFrameToAPI(frame, 'validation', currentSessionId, frameNumber);
+    
+    if (stopRequestedRef.current) {
+      setIsProcessing(false);
+      return;
+    }
+    
+    // FIXED: Check for validation failures in both message_state AND movement_state
+    if (apiResponse.message_state === "VALIDATION_FAILED" || 
+        apiResponse.movement_state === "VALIDATION_FAILED") {
+      validationComplete = true;
+      clearDetectionTimeout();
+      
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+      }
+      
+      setIsProcessing(false);
+      
+      // Use appropriate error message based on which field contains the failure
+      const errorMsg = apiResponse.message || 
+                      (apiResponse.movement_state === "VALIDATION_FAILED" ? 
+                       'Card validation failed. Please ensure you have a physical card and try again.' : 
+                       'Validation failed. Please try again.');
+      
+      handleDetectionFailure(errorMsg, 'validation');
+      return;
+    }
+
+    // FIXED: Check for validation success in both fields
+    if (apiResponse.message_state === "VALIDATION_PASSED" || 
+        apiResponse.movement_state === "VALIDATION_PASSED") {
+      validationComplete = true;
+      clearDetectionTimeout();
+      
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+      }
+      
+      setIsProcessing(false);
+      // Reset attempt count on successful validation
+      setAttemptCount(0);
+      setCurrentOperation('');
+      
+      setTimeout(() => {
+        if (!stopRequestedRef.current) {
+          setCurrentPhase('ready-for-front');
+        }
+      }, 2000);
+      return;
+    }
+    
+    // Update validation state - show failure message immediately if movement_state indicates failure
+    const newValidationState = {
+      physicalCard: apiResponse.physical_card || false,
+      movementState: apiResponse.movement_state || null,
+      movementMessage: apiResponse.movement_message || 
+                      (apiResponse.movement_state === "VALIDATION_FAILED" ? 
+                       'Validation Failed' : ''),
+      validationComplete: apiResponse.physical_card || false
+    };
+
+    setValidationState(newValidationState);
+    setIsProcessing(false);
+
+    // Keep the existing logic for backward compatibility
+    if (newValidationState.validationComplete && !stopRequestedRef.current) {
+      validationComplete = true;
+      clearDetectionTimeout();
+      
+      if (validationIntervalRef.current) {
+        clearInterval(validationIntervalRef.current);
+      }
+      
+      // Reset attempt count on successful validation
+      setAttemptCount(0);
+      setCurrentOperation('');
+      
+      setTimeout(() => {
+        if (!stopRequestedRef.current) {
+          setCurrentPhase('ready-for-front');
+        }
+      }, 2000);
+    }
+
+  } catch (error) {
+    console.error('Validation frame processing error:', error);
+    setIsProcessing(false);
+  }
+};
+    processValidationFrame();
+    validationIntervalRef.current = setInterval(processValidationFrame, 1500);
+
+    setTimeout(() => {
+      if (!validationComplete && !stopRequestedRef.current) {
+        if (validationIntervalRef.current) {
+          clearInterval(validationIntervalRef.current);
+        }
+        handleDetectionFailure('Our intelligence system requires you to try again since the card scan failed', 'validation');
+      }
+    }, maxValidationTime);
+  };
+
+  const startFrontSideDetection = async () => {
+    if (maxAttemptsReached) return;
+    
+    setFrontScanState({
+      framesBuffered: 0,
+      chipDetected: false,
+      bankLogoDetected: false,
+      canProceedToBack: false
+    });
+
+    setCurrentPhase('front-countdown');
+    setErrorMessage('');
+
+    startCountdown(async () => {
+      if (stopRequestedRef.current) return;
+      
+      setCurrentPhase('front');
+      setDetectionActive(true);
+      stopRequestedRef.current = false;
+
+      // Start detection timeout
+      startDetectionTimeout('Front side');
+
+      try {
+        await captureAndSendFramesFront('front');
+        
+        if (!stopRequestedRef.current) {
+          clearDetectionTimeout();
+          setDetectionActive(false);
+          // Reset attempt count on successful front scan
+          setAttemptCount(0);
+          setCurrentOperation('');
+          setCurrentPhase('ready-for-back');
+        }
+        
+      } catch (error) {
+        console.error('Front side detection failed:', error);
+        setDetectionActive(false);
+        if (!stopRequestedRef.current) {
+          handleDetectionFailure(`Front side detection failed: ${error.message}`, 'front');
+        }
+      }
+    });
+  };
+
+  
+  const startBackSideDetection = async () => {
+    if (maxAttemptsReached) return;
+    
+    setCurrentPhase('back-countdown');
+    setErrorMessage('');
+
+    startCountdown(async () => {
+      if (stopRequestedRef.current) return;
+      
+      setCurrentPhase('back');
+      setDetectionActive(true);
+      stopRequestedRef.current = false;
+
+      // Start detection timeout
+      startDetectionTimeout('Back side');
+
+      try {
+        const finalResult = await captureAndSendFrames('back');
+        
+        if (!stopRequestedRef.current) {
+          clearDetectionTimeout();
+          setDetectionActive(false);
+          
+          // CRITICAL FIX: Proper check for final encrypted response
+          console.log('🔍 Checking final result:', finalResult);
+          
+          if (finalResult.encrypted_card_data && finalResult.status) {
+            console.log('🎯 Final encrypted response detected - Setting phase to final_response');
+            console.log(`Status: ${finalResult.status}, Score: ${finalResult.score}`);
+            setFinalOcrResults(finalResult);
+            setCurrentPhase('final_response');
+          } else if (finalResult.final_ocr) {
+            console.log('📋 Regular OCR results - Setting phase to results');
+            setFinalOcrResults(finalResult);
+            setCurrentPhase('results');
+          } else {
+            console.log('⚠️ No final OCR or encrypted data found');
+            setFinalOcrResults(finalResult);
+            setCurrentPhase('results');
+          }
+          
+          // Reset attempt count on successful completion
+          setAttemptCount(0);
+          setCurrentOperation('');
+        }
+        
+      } catch (error) {
+        console.error('Back side detection failed:', error);
+        setDetectionActive(false);
+        if (!stopRequestedRef.current) {
+          handleDetectionFailure(`Back side detection failed: ${error.message}`, 'back');
+        }
+      }
+    });
+  };
+
+  const resetApplication = () => {
+    stopRequestedRef.current = true;
+    clearDetectionTimeout();
+    
+    setCurrentPhase('idle');
+    setDetectionActive(false);
+    setFinalOcrResults(null);
+    setIsProcessing(false);
+    setCountdown(0);
+    setErrorMessage('');
+    setSessionId('');
+    
+    // Reset attempt tracking completely - this is for "Start New Session"
+    setAttemptCount(0);
+    setMaxAttemptsReached(false);
+    setCurrentOperation('');
+    
+    setValidationState({
+      physicalCard: false,
+      movementState: null,
+      movementMessage: '',
+      validationComplete: false
+    });
+    setFrontScanState({
+      framesBuffered: 0,
+      chipDetected: false,
+      bankLogoDetected: false,
+      canProceedToBack: false
+    });
+    capturedFrames.current = [];
+    
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    if (validationIntervalRef.current) {
+      clearInterval(validationIntervalRef.current);
+    }
+    
+    stopRequestedRef.current = false;
+  };
+
+  // New function specifically for "Try Again" - keeps attempt count
   const handleTryAgain = () => {
     setShowQR(false);
     setScanUrl('');
