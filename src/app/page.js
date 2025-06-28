@@ -2,14 +2,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import components
+// Replace the imports section at the top of your page.js file with this:
+
+// Import components
 import ControlPanel from './components/ControlPanel';
 import StatusInformation from './components/StatusInfo';
+import CameraView from './components/CameraView';
 
 // Import utilities
 import { initializeCamera, captureFrame, cleanupCamera } from './utils/CameraUtils';
 import { sendFrameToAPI } from './utils/apiService';
 import { useDetection } from './hooks/UseDetection';
-import CameraView from './components/CameraView';
+
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 3;
@@ -416,6 +420,7 @@ const processValidationFrame = async () => {
     });
   };
 
+  
   const startBackSideDetection = async () => {
     if (maxAttemptsReached) return;
     
@@ -437,9 +442,26 @@ const processValidationFrame = async () => {
         
         if (!stopRequestedRef.current) {
           clearDetectionTimeout();
-          setFinalOcrResults(finalResult);
-          setCurrentPhase('results');
           setDetectionActive(false);
+          
+          // CRITICAL FIX: Proper check for final encrypted response
+          console.log('🔍 Checking final result:', finalResult);
+          
+          if (finalResult.encrypted_card_data && finalResult.status) {
+            console.log('🎯 Final encrypted response detected - Setting phase to final_response');
+            console.log(`Status: ${finalResult.status}, Score: ${finalResult.score}`);
+            setFinalOcrResults(finalResult);
+            setCurrentPhase('final_response');
+          } else if (finalResult.final_ocr) {
+            console.log('📋 Regular OCR results - Setting phase to results');
+            setFinalOcrResults(finalResult);
+            setCurrentPhase('results');
+          } else {
+            console.log('⚠️ No final OCR or encrypted data found');
+            setFinalOcrResults(finalResult);
+            setCurrentPhase('results');
+          }
+          
           // Reset attempt count on successful completion
           setAttemptCount(0);
           setCurrentOperation('');
