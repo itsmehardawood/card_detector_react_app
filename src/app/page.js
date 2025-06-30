@@ -2,7 +2,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { Smartphone, Monitor, Scan, Shield, CreditCard } from 'lucide-react';
-import QRCode from 'react-qr-code';
+// import QRCode from 'react-qr-code';
 
 const StartPage = () => {
   const [merchantId, setMerchantId] = useState('');
@@ -126,14 +126,14 @@ const StartPage = () => {
             </p>
           </div>
 
-          <div className="bg-white p-4 rounded-lg border-2 border-gray-200 mb-6">
+          {/* <div className="bg-white p-4 rounded-lg border-2 border-gray-200 mb-6">
             <QRCode
               size={200}
               style={{ height: "auto", maxWidth: "100%", width: "100%" }}
               value={scanUrl}
               viewBox={`0 0 200 200`}
             />
-          </div>
+          </div> */}
 
           <p className="text-sm text-gray-500 mb-6">
             Open your mobile camera and scan this QR code
