@@ -12,7 +12,8 @@ export const useDetection = (
   setCurrentPhase,
   setErrorMessage,
   setFrontScanState,
-  stopRequestedRef // Added this parameter from your main component
+  stopRequestedRef,
+  handleDetectionFailure // Add this parameter for validation failures
 ) => {
   const captureIntervalRef = useRef(null);
 
@@ -47,8 +48,6 @@ export const useDetection = (
         setIsProcessing(false);
       };
       
-      // Replace the processFrame function inside captureAndSendFrames with this fixed version:
-      
       const processFrame = async () => {
         try {
           // Check if stop requested or already complete
@@ -68,10 +67,11 @@ export const useDetection = (
                 console.log('🎯 Final encrypted response received! Stopping detection...');
                 isComplete = true;
                 cleanup();
+                setCurrentPhase('results');
                 resolve(apiResponse);
                 return;
               }
-              
+
               // Check for validation states first (for validation phase)
               if (phase === 'validation') {
                 if (apiResponse.message_state === "VALIDATION_FAILED" || 
@@ -113,23 +113,70 @@ export const useDetection = (
               
               lastApiResponse = apiResponse;
               setIsProcessing(false);
+
+              // Update front scan state for front phase
+              if (phase === 'front') {
+                setFrontScanState({
+                  framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
+                  chipDetected: apiResponse.chip || false,
+                  bankLogoDetected: apiResponse.bank_logo || false,
+                  canProceedToBack: false
+                });
+              }
               
               const bufferedFrames = phase === 'front' 
                 ? apiResponse.buffer_info?.front_frames_buffered 
                 : apiResponse.buffer_info?.back_frames_buffered;
               
+              // MOVED: Check validation ONLY after we have sufficient buffered frames
+              if (bufferedFrames >= 6) {
+                // NOW check front_valid for front phase (only after 6 frames buffered)
+                if (phase === 'front' && apiResponse.front_valid === false) {
+                  console.log('❌ Front validation failed after 6 frames - front_valid is false');
+                  isComplete = true;
+                  cleanup();
+                  if (handleDetectionFailure) {
+                    handleDetectionFailure('Front side validation failed. Please ensure the card is properly positioned and try again.', 'front');
+                  }
+                  reject(new Error('Front validation failed - front_valid is false'));
+                  return;
+                }
+
+                // NOW check back_valid for back phase (only after 6 frames buffered)
+                if (phase === 'back' && apiResponse.back_valid === false) {
+                  console.log('❌ Back validation failed after 6 frames - back_valid is false');
+                  isComplete = true;
+                  cleanup();
+                  if (handleDetectionFailure) {
+                    handleDetectionFailure('Back side validation failed. Please ensure the card back is clearly visible and try again.', 'back');
+                  }
+                  reject(new Error('Back validation failed - back_valid is false'));
+                  return;
+                }
+              }
+              
               // For back side, check both sufficient frames and required features
               if (phase === 'back' && bufferedFrames >= 6) {
                 const { count, detectedFeatures } = countBackSideFeatures(apiResponse);
                 
-                if (count >= requiredBackSideFeatures) {
+                if (count >= 3) { // requiredBackSideFeatures
                   isComplete = true;
                   cleanup();
                   console.log(`Back side complete - 6 frames buffered and ${count} features detected: ${detectedFeatures.join(', ')}`);
+                  setCurrentPhase('results');
                   resolve(apiResponse);
                   return;
                 }
-              } else if (phase !== 'back' && phase !== 'validation' && bufferedFrames >= 6) {
+              } else if (phase === 'front' && bufferedFrames >= 6) {
+                // For front side, check if we have chip or bank logo
+                if (apiResponse.chip || apiResponse.bank_logo) {
+                  isComplete = true;
+                  cleanup();
+                  console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}`);
+                  resolve(apiResponse);
+                  return;
+                }
+              } else if (phase !== 'back' && phase !== 'front' && phase !== 'validation' && bufferedFrames >= 6) {
                 isComplete = true;
                 cleanup();
                 console.log(`${phase} side complete - 6 frames buffered`);
@@ -147,11 +194,11 @@ export const useDetection = (
                     const buffered = lastApiResponse.buffer_info?.back_frames_buffered || 0;
                     const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
                     
-                    if (buffered >= 6 && count < requiredBackSideFeatures) {
-                      const missingCount = requiredBackSideFeatures - count;
-                      setErrorMessage(`Insufficient back side features detected. Found ${count} out of required ${requiredBackSideFeatures} features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible showing magnetic strip, signature strip, hologram, and customer service details.`);
+                    if (buffered >= 6 && count < 3) {
+                      const missingCount = 3 - count;
+                      setErrorMessage(`Insufficient back side features detected. Found ${count} out of required 3 features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible showing magnetic strip, signature strip, hologram, and customer service details.`);
                       setCurrentPhase('error');
-                      reject(new Error(`Insufficient back side features: only ${count}/${requiredBackSideFeatures} detected`));
+                      reject(new Error(`Insufficient back side features: only ${count}/3 detected`));
                     } else if (buffered < 6) {
                       setErrorMessage('Failed to capture sufficient frames for back side. Please try again.');
                       setCurrentPhase('error');
@@ -181,8 +228,6 @@ export const useDetection = (
       processFrame();
       captureIntervalRef.current = setInterval(processFrame, 1500);
       
-      // Replace the timeout handler in captureAndSendFrames with this:
-      
       timeoutId = setTimeout(() => {
         if (!isComplete) {
           cleanup();
@@ -192,6 +237,7 @@ export const useDetection = (
             // CRITICAL FIX: Check for final encrypted response in timeout
             if (lastApiResponse.encrypted_card_data && lastApiResponse.status) {
               console.log('🎯 Final encrypted response found in timeout handler');
+              setCurrentPhase('results');
               resolve(lastApiResponse);
               return;
             }
@@ -200,11 +246,12 @@ export const useDetection = (
               const bufferedFrames = lastApiResponse.buffer_info?.back_frames_buffered || 0;
               const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
               
-              if (bufferedFrames >= 6 && count >= requiredBackSideFeatures) {
+              if (bufferedFrames >= 6 && count >= 3) {
+                setCurrentPhase('results');
                 resolve(lastApiResponse);
                 return;
-              } else if (bufferedFrames >= 6 && count < requiredBackSideFeatures) {
-                setErrorMessage(`Timeout: Insufficient back side features detected. Found ${count} out of required ${requiredBackSideFeatures} features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible.`);
+              } else if (bufferedFrames >= 6 && count < 3) {
+                setErrorMessage(`Timeout: Insufficient back side features detected. Found ${count} out of required 3 features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible.`);
                 setCurrentPhase('error');
                 reject(new Error(`Timeout: Insufficient back side features detected`));
                 return;
@@ -227,7 +274,6 @@ export const useDetection = (
       magstrip: apiResponse.magstrip || false,
       signstrip: apiResponse.signstrip || false,
       hologram: apiResponse.hologram || false,
-      customer_service_detected: apiResponse.final_ocr?.customer_service.detected || false
     };
     
     return {
@@ -237,7 +283,6 @@ export const useDetection = (
     };
   };
 
-  // Regular capture function for back side with feature validation
   // Regular capture function for back side with feature validation
   const captureAndSendFrames = async (phase) => {
     const currentSessionId = sessionId || `session_${Date.now()}`;
@@ -290,10 +335,11 @@ export const useDetection = (
                 cleanup();
                 console.log('🎉 Final encrypted response received - stopping detection immediately');
                 console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}`);
+                setCurrentPhase('results');
                 resolve(apiResponse);
                 return;
               }
-              
+
               // Check for validation states first (for validation phase)
               if (phase === 'validation') {
                 if (apiResponse.message_state === "VALIDATION_FAILED" || 
@@ -340,6 +386,33 @@ export const useDetection = (
                 ? apiResponse.buffer_info?.front_frames_buffered 
                 : apiResponse.buffer_info?.back_frames_buffered;
               
+              // MOVED: Check validation ONLY after we have sufficient buffered frames
+              if (bufferedFrames >= 6) {
+                // NOW check front_valid for front phase (only after 6 frames buffered)
+                if (phase === 'front' && apiResponse.front_valid === false) {
+                  console.log('❌ Front validation failed after 6 frames - front_valid is false');
+                  isComplete = true;
+                  cleanup();
+                  if (handleDetectionFailure) {
+                    handleDetectionFailure('Front side validation failed. Please ensure the card is properly positioned and try again.', 'front');
+                  }
+                  reject(new Error('Front validation failed - front_valid is false'));
+                  return;
+                }
+
+                // NOW check back_valid for back phase (only after 6 frames buffered)
+                if (phase === 'back' && apiResponse.back_valid === false) {
+                  console.log('❌ Back validation failed after 6 frames - back_valid is false');
+                  isComplete = true;
+                  cleanup();
+                  if (handleDetectionFailure) {
+                    handleDetectionFailure('Back side validation failed. Please ensure the card back is clearly visible and try again.', 'back');
+                  }
+                  reject(new Error('Back validation failed - back_valid is false'));
+                  return;
+                }
+              }
+              
               // For back side, check both sufficient frames and required features
               if (phase === 'back' && bufferedFrames >= 6) {
                 const { count, detectedFeatures } = countBackSideFeatures(apiResponse);
@@ -348,6 +421,7 @@ export const useDetection = (
                   isComplete = true;
                   cleanup();
                   console.log(`Back side complete - 6 frames buffered and ${count} features detected: ${detectedFeatures.join(', ')}`);
+                  setCurrentPhase('results');
                   resolve(apiResponse);
                   return;
                 }
@@ -412,6 +486,7 @@ export const useDetection = (
             // Check for final encrypted response even on timeout
             if (lastApiResponse.encrypted_card_data && lastApiResponse.status) {
               console.log('🎉 Final encrypted response found on timeout');
+              setCurrentPhase('results');
               resolve(lastApiResponse);
               return;
             }
@@ -421,6 +496,7 @@ export const useDetection = (
               const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
               
               if (bufferedFrames >= 6 && count >= requiredBackSideFeatures) {
+                setCurrentPhase('results');
                 resolve(lastApiResponse);
                 return;
               } else if (bufferedFrames >= 6 && count < requiredBackSideFeatures) {

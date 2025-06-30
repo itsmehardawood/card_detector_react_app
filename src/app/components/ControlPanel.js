@@ -22,8 +22,9 @@ const ControlPanel = ({
   maxAttempts,
   maxAttemptsReached
 }) => {
-  
-  // Show final encrypted response
+  const isActive = detectionActive || isProcessing || countdown > 0;
+
+  // Show final encrypted response (from file 1)
   if (currentPhase === 'final_response' && finalOcrResults?.encrypted_card_data) {
     return <FinalResponse finalResponse={finalOcrResults} onReset={onReset} />;
   }
@@ -33,23 +34,35 @@ const ControlPanel = ({
     return <DetectionResults finalOcrResults={finalOcrResults} onReset={onReset} />;
   }
 
-  // Error state with attempt tracking
+  // Show results if detection is complete (fallback from file 2)
+  if (currentPhase === 'results') {
+    return (
+      <DetectionResults 
+        finalOcrResults={finalOcrResults} 
+        onReset={onReset} 
+      />
+    );
+  }
+
+  // Error state with attempt tracking (enhanced from both files)
   if (currentPhase === 'error') {
     return (
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
           <div className="mb-4">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-red-600 text-2xl sm:text-3xl">⚠️</span>
-            </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Detection Failed</h3>
-            <p className="text-gray-700 mb-4 text-sm sm:text-base">{errorMessage}</p>
+           
+            <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Security Scan Detection Failed</h3>
+            {/* <p className="text-gray-700 mb-4 text-sm sm:text-base">{errorMessage}</p> */}
+            <p className="text-red-700 mb-3">Please ensure the card is in a clear view.</p>
             
             {!maxAttemptsReached && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-blue-700 text-sm">
                   Attempt {attemptCount} of {maxAttempts}
                 </p>
+                <div className="text-sm text-red-600 mt-1">
+                  You have {maxAttempts - attemptCount} attempt{maxAttempts - attemptCount !== 1 ? 's' : ''} remaining.
+                </div>
               </div>
             )}
           </div>
@@ -75,31 +88,23 @@ const ControlPanel = ({
     );
   }
 
-  // Max attempts reached
+  // Max attempts reached (enhanced from both files)
   if (currentPhase === 'max-attempts-reached') {
     return (
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-2xl sm:text-3xl">🚫</span>
+       
+          <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-3">Oops! Currently, you have reached the maximum number of times you can scan.</h3>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <p className="text-red-700 font-bold">Contact customer support for assistance or Retry the scanning process</p>
           </div>
-          <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Maximum Attempts Reached</h3>
-          <p className="text-gray-700 mb-4 text-sm sm:text-base">
-            You have reached the maximum number of attempts ({maxAttempts}). 
-            Please contact support for assistance.
-          </p>
-          <button
-            onClick={onReset}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-          >
-            Start New Session
-          </button>
+       
         </div>
       </div>
     );
   }
 
-  // Main control panel
+  // Main control panel with enhanced phase handling
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
       <div className="text-center space-y-4">
@@ -111,14 +116,14 @@ const ControlPanel = ({
               Card Security Detection
             </h3>
             <p className="text-gray-600 mb-6 text-sm sm:text-base">
-              Position your card in the camera view and start the validation process
+              {/* Position your card in the camera view and start the validation process */}
             </p>
             <button
               onClick={onStartValidation}
-              disabled={isProcessing}
+              disabled={isActive || maxAttemptsReached}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
             >
-              {isProcessing ? 'Processing...' : 'Start Validation'}
+              {isActive ? 'Processing...' : 'Start Card Scan'}
             </button>
           </div>
         )}
@@ -144,7 +149,7 @@ const ControlPanel = ({
               onClick={onStop}
               className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
             >
-              Stop Validation
+              Stop Card Scan
             </button>
           </div>
         )}
@@ -153,16 +158,14 @@ const ControlPanel = ({
         {currentPhase === 'ready-for-front' && (
           <div>
             <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
-              ✅ Validation Complete
+              Validation Complete
             </h3>
-            <p className="text-gray-600 mb-6 text-sm sm:text-base">
-              Position the FRONT side of your card (with chip visible) and click to scan
-            </p>
             <button
               onClick={onStartFrontScan}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
+              disabled={isActive || maxAttemptsReached}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
             >
-              Scan Front Side
+              {isActive ? 'Scanning Front...' : 'Scan Front Side'}
             </button>
           </div>
         )}
@@ -178,7 +181,7 @@ const ControlPanel = ({
                 Scanning starts in {countdown} seconds...
               </p>
             )}
-            {currentPhase === 'front' && (
+            {/* {currentPhase === 'front' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                   <div className="flex items-center justify-center space-x-2">
@@ -195,7 +198,7 @@ const ControlPanel = ({
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
             <button
               onClick={onStop}
               className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
@@ -209,17 +212,38 @@ const ControlPanel = ({
         {currentPhase === 'ready-for-back' && (
           <div>
             <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
-              ✅ Front Side Complete
+              Front Side Complete
             </h3>
-            <p className="text-gray-600 mb-6 text-sm sm:text-base">
-              Now flip to the BACK side of your card and click to scan
-            </p>
+       
+            
+            {/* Debug info - remove this after testing
+            <div className="bg-gray-100 border rounded p-2 mb-4 text-xs">
+              <p>Debug: canProceedToBack = {String(frontScanState?.canProceedToBack)}</p>
+              <p>Debug: chipDetected = {String(frontScanState?.chipDetected)}</p>
+              <p>Debug: bankLogoDetected = {String(frontScanState?.bankLogoDetected)}</p>
+              <p>Debug: framesBuffered = {frontScanState?.framesBuffered || 0}</p>
+            </div> */}
+            
             <button
               onClick={onStartBackScan}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
+              disabled={isActive || maxAttemptsReached}
+              className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
             >
-              Scan Back Side
+              {isActive ? 'Scanning Back...' : 'Scan Back Side'}
             </button>
+            
+            {/* Show warning only if we have explicit false or missing requirements */}
+            {frontScanState && (
+              (!frontScanState.chipDetected || !frontScanState.bankLogoDetected || (frontScanState.framesBuffered < 6)) && (
+                <div className="mt-4">
+                  <p className="text-sm text-orange-600">
+                    Requirements: Chip ✓{frontScanState.chipDetected ? ' Complete' : ' Missing'}, 
+                    Logo ✓{frontScanState.bankLogoDetected ? ' Complete' : ' Missing'}, 
+                    Frames ✓{frontScanState.framesBuffered >= 6 ? ' Complete' : ` ${frontScanState.framesBuffered || 0}/6`}
+                  </p>
+                </div>
+              )
+            )}
           </div>
         )}
 
@@ -234,13 +258,7 @@ const ControlPanel = ({
                 Scanning starts in {countdown} seconds...
               </p>
             )}
-            {currentPhase === 'back' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-blue-800 text-sm sm:text-base">
-                  Keep the back side of your card in view while processing...
-                </p>
-              </div>
-            )}
+     
             <button
               onClick={onStop}
               className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
@@ -259,6 +277,15 @@ const ControlPanel = ({
                 {isProcessing ? 'Processing Frame...' : 'Detection Active'}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Attempt Counter */}
+        {attemptCount > 0 && !maxAttemptsReached && (
+          <div className="mt-4">
+            <p className="text-sm text-orange-600">
+              Attempts: {attemptCount}/{maxAttempts}
+            </p>
           </div>
         )}
       </div>

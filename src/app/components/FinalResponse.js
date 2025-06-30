@@ -23,13 +23,13 @@ const FinalResponse = ({ finalResponse, onReset }) => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'success':
-        return '✅';
+        return '';
       case 'partial_success':
-        return '⚠️';
+        return '';
       case 'failed':
-        return '❌';
+        return '';
       default:
-        return '🔄';
+        return '';
     }
   };
 
@@ -50,35 +50,29 @@ const FinalResponse = ({ finalResponse, onReset }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 max-w-4xl mx-auto">
       <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 text-gray-800">
-        🎉 Card Processing Complete
+        Card Processing Complete
       </h2>
 
       {/* Status Summary */}
       <div className={`rounded-lg border-2 p-4 mb-6 ${getStatusColor(finalResponse.status)}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl">{getStatusIcon(finalResponse.status)}</span>
-            <div>
-              <h3 className="text-lg font-semibold capitalize">
+        <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center space-x-3">
+            
+              <h3 className="text-lg   font-semibold capitalize">
                 {finalResponse.status.replace('_', ' ')}
               </h3>
-              <p className="text-sm opacity-75">
+              {/* <p className="text-sm opacity-75">
                 Processing completed with {finalResponse.status === 'success' ? 'excellent' : 
                                         finalResponse.status === 'partial_success' ? 'acceptable' : 'insufficient'} results
-              </p>
-            </div>
+              </p> */}
+            
           </div>
-          <div className="text-right">
-            <div className={`text-2xl font-bold ${getScoreColor(finalResponse.score)}`}>
-              {Math.round(finalResponse.score)}%
-            </div>
-            <div className="text-xs opacity-75">Confidence Score</div>
-          </div>
+       
         </div>
       </div>
 
       {/* Merchant Information */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <h3 className="text-lg font-semibold text-blue-800 mb-3">Session Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="flex justify-between">
@@ -90,10 +84,10 @@ const FinalResponse = ({ finalResponse, onReset }) => {
             <span className="text-blue-900 capitalize">{finalResponse.status.replace('_', ' ')}</span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Encrypted Data Section */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+      {/* <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-800">🔒 Encrypted Card Data</h3>
           <button
@@ -137,10 +131,10 @@ const FinalResponse = ({ finalResponse, onReset }) => {
             </pre>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Security Notice */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+      {/* <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
         <div className="flex items-start space-x-2">
           <span className="text-yellow-600 text-lg">🔐</span>
           <div className="text-sm text-yellow-800">
@@ -151,7 +145,7 @@ const FinalResponse = ({ finalResponse, onReset }) => {
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Actions */}
       <div className="text-center space-y-3">
