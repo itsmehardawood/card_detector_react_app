@@ -3,142 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test WebView Entry Redirect</title>
+    <title>API Endpoint Tester</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #f5f7fa;
         }
-        .form-container {
+        .container {
             background: white;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
-        h1 {
-            color: #333;
-            text-align: center;
+        .debug-container {
+            background: #1a1a1a;
+            color: #00ff41;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .endpoint-section {
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        .endpoint-section.active {
+            border-color: #007bff;
+            background: #e7f3ff;
         }
         label {
             display: block;
             margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            font-weight: 600;
+            color: #34495e;
         }
-        input[type="text"] {
+        input[type="text"], input[type="url"], textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
             box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #007bff;
         }
         button {
-            background-color: #007bff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 30px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
-            width: 100%;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
         }
         button:hover {
-            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .test-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .clear-btn {
+            background: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
         }
         .info {
-            background-color: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 4px;
-            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 20px;
             margin-bottom: 20px;
         }
-        .url-display {
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        .status-info { background-color: #17a2b8; }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #e1e8ed;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
             background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 20px;
-            font-family: monospace;
-            word-break: break-all;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="form-container">
-        <h1>🧪 Test WebView Entry Redirect</h1>
+    <div class="container">
+        <h1>🧪 Comprehensive API Endpoint Tester</h1>
         
         <div class="info">
-            <strong>📋 Instructions:</strong>
-            <ol>
-                <li>Replace the URL below with your ngrok URL</li>
-                <li>Fill in test merchant credentials</li>
-                <li>Click "Test Redirect" to simulate the Android POST</li>
-                <li>Check if it redirects to the scan page (not localhost)</li>
-            </ol>
+            <strong>🎯 This tool tests both your API endpoints:</strong>
+            <ul style="margin: 10px 0;">
+                <li><strong>/api/webview-entry</strong> - Form-based POST with redirect</li>
+                <li><strong>/api/start-scan</strong> - JSON-based POST with response</li>
+            </ul>
+            <strong>🔍 It will help identify:</strong> CORS issues, URL construction problems, deployment differences
         </div>
 
-        <form id="testForm" method="POST">
-            <label for="apiUrl">🌐 API URL:</label>
-            <input type="text" id="apiUrl" name="apiUrl" 
-                   value="https://4cc1-154-57-223-171.ngrok-free.app/securityscan/api/webview-entry" 
-                   placeholder="Your ngrok URL + /securityscan/api/webview-entry">
+        <label for="baseUrl">🌐 Base URL (your deployed app):</label>
+        <input type="url" id="baseUrl" value="https://your-app.vercel.app" placeholder="https://your-app.vercel.app">
 
-            <label for="merchantId">🏪 Merchant ID:</label>
-            <input type="text" id="merchantId" name="merchant_id" 
-                   value="MERCHANT_12345" 
-                   placeholder="Enter merchant ID">
+        <label for="merchantId">🏪 Merchant ID:</label>
+        <input type="text" id="merchantId" value="MERCHANT_12345" placeholder="Enter merchant ID">
 
-            <label for="authToken">🔑 Auth Token:</label>
-            <input type="text" id="authToken" name="auth_token" 
-                   value="test_jwt_token_here_replace_with_real_token" 
-                   placeholder="Enter JWT token">
+        <label for="authToken">🔑 Auth Token:</label>
+        <input type="text" id="authToken" value="test_jwt_token_here_replace_with_real_token" placeholder="Enter JWT token">
 
-            <button type="submit">🚀 Test Redirect</button>
-        </form>
+        <div class="button-group">
+            <button onclick="testAllEndpoints()" class="test-btn">🚀 Test All Endpoints</button>
+            <button onclick="testWebviewEntry()" class="test-btn">📱 Test WebView Entry</button>
+            <button onclick="testStartScan()" class="test-btn">🔍 Test Start Scan</button>
+            <button onclick="healthCheckAll()" class="test-btn">💓 Health Check All</button>
+            <button onclick="clearDebug()" class="clear-btn">🧹 Clear Debug</button>
+        </div>
+    </div>
 
-        <div class="info" style="margin-top: 20px;">
-            <strong>✅ Expected Result:</strong><br>
-            Should redirect to: <code>your-ngrok-url/securityscan?session=session_xxxxx&source=post</code>
-            <br><br>
-            <strong>❌ Problem Result:</strong><br>
-            Redirects to: <code>localhost:3000/securityscan?session=session_xxxxx&source=post</code>
+    <div class="container">
+        <h2>📊 Test Results Comparison</h2>
+        <table class="comparison-table" id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Status</th>
+                    <th>Response Type</th>
+                    <th>Redirect URL</th>
+                    <th>Issues Found</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Results will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <h2>🐛 Debug Output</h2>
+        <div id="debugOutput" class="debug-container">
+            Ready for testing... 🚀
         </div>
     </div>
 
     <script>
-        document.getElementById('testForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        const debugOutput = document.getElementById('debugOutput');
+        const resultsTable = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
+        const testResults = {};
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                'error': '#ff6b6b',
+                'success': '#51cf66',
+                'warning': '#ffd93d',
+                'info': '#00ff41'
+            };
+            const color = colors[type] || colors.info;
+            debugOutput.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearDebug() {
+            debugOutput.innerHTML = 'Debug cleared... 🧹\n';
+            resultsTable.innerHTML = '';
+            Object.keys(testResults).forEach(key => delete testResults[key]);
+        }
+
+        function updateResultsTable() {
+            resultsTable.innerHTML = '';
             
-            const apiUrl = document.getElementById('apiUrl').value;
-            const merchantId = document.getElementById('merchantId').value;
-            const authToken = document.getElementById('authToken').value;
+            Object.entries(testResults).forEach(([endpoint, result]) => {
+                const row = resultsTable.insertRow();
+                
+                const statusIcon = result.success ? 
+                    '<span class="status-indicator status-success"></span>✅' :
+                    '<span class="status-indicator status-error"></span>❌';
+                
+                row.innerHTML = `
+                    <td><strong>${endpoint}</strong></td>
+                    <td>${statusIcon} ${result.status || 'Unknown'}</td>
+                    <td>${result.responseType || 'N/A'}</td>
+                    <td style="font-family: monospace; font-size: 12px;">${result.redirectUrl || 'N/A'}</td>
+                    <td style="color: ${result.issues.length > 0 ? '#dc3545' : '#28a745'}">
+                        ${result.issues.length > 0 ? result.issues.join(', ') : 'None'}
+                    </td>
+                `;
+            });
+        }
+
+        function getBaseUrl() {
+            return document.getElementById('baseUrl').value.replace(/\/$/, '');
+        }
+
+        function getTestData() {
+            return {
+                merchantId: document.getElementById('merchantId').value,
+                authToken: document.getElementById('authToken').value
+            };
+        }
+
+        async function healthCheckAll() {
+            log('💓 Starting health check for all endpoints...', 'info');
+            const baseUrl = getBaseUrl();
             
-            // Update form action
-            this.action = apiUrl;
+            const endpoints = [
+                '/api/webview-entry',
+                '/api/start-scan'
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${baseUrl}${endpoint}`, {
+                        method: 'HEAD'
+                    });
+                    
+                    log(`💓 ${endpoint}: ${response.status} - ${response.ok ? 'Healthy' : 'Issues'}`, 
+                        response.ok ? 'success' : 'warning');
+                        
+                } catch (error) {
+                    log(`💔 ${endpoint}: Unreachable - ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testWebviewEntry() {
+            log('📱 Testing WebView Entry endpoint...', 'info');
+            const baseUrl = getBaseUrl();
+            const { merchantId, authToken } = getTestData();
+            const endpoint = `${baseUrl}/api/webview-entry`;
+
+            const result = {
+                success: false,
+                status: '',
+                responseType: '',
+                redirectUrl: '',
+                issues: []
+            };
+
+            try {
+                // Test with fetch (manual redirect handling)
+                const formData = new FormData();
+                formData.append('merchant_id', merchantId);
+                formData.append('auth_token', authToken);
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData,
+                    redirect: 'manual'
+                });
+
+                result.status = response.status;
+                result.responseType = response.type;
+
+                log(`📱 WebView Entry Response: ${response.status} ${response.statusText}`, 
+                    response.ok ? 'success' : 'warning');
+
+                if (response.status >= 300 && response.status < 400) {
+                    const location = response.headers.get('location');
+                    result.redirectUrl = location;
+                    result.success = true;
+                    
+                    log(`🔄 Redirect URL: ${location}`, 'success');
+                    
+                    if (location && location.includes('localhost')) {
+                        result.issues.push('Redirects to localhost');
+                        log(`⚠️ WARNING: Redirecting to localhost!`, 'warning');
+                    }
+                } else {
+                    result.issues.push(`Unexpected status: ${response.status}`);
+                    const text = await response.text();
+                    log(`📄 Response body: ${text.substring(0, 200)}...`, 'warning');
+                }
+
+            } catch (error) {
+                result.issues.push(`Network error: ${error.message}`);
+                log(`❌ WebView Entry failed: ${error.message}`, 'error');
+            }
+
+            testResults['WebView Entry'] = result;
+            updateResultsTable();
+        }
+
+        async function testStartScan() {
+            log('🔍 Testing Start Scan endpoint...', 'info');
+            const baseUrl = getBaseUrl();
+            const { merchantId, authToken } = getTestData();
+            const endpoint = `${baseUrl}/api/start-scan`;
+
+            const result = {
+                success: false,
+                status: '',
+                responseType: 'JSON Response',
+                redirectUrl: '',
+                issues: []
+            };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        merchant_id: merchantId,
+                        auth_token: authToken,
+                        device_info: { test: true }
+                    })
+                });
+
+                result.status = response.status;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    result.success = true;
+                    result.redirectUrl = data.redirect_url;
+                    
+                    log(`🔍 Start Scan Success: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    if (data.redirect_url && data.redirect_url.includes('localhost')) {
+                        result.issues.push('Redirect URL contains localhost');
+                        log(`⚠️ WARNING: Redirect URL contains localhost!`, 'warning');
+                    }
+                } else {
+                    result.issues.push(`HTTP ${response.status}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    log(`❌ Start Scan Error: ${JSON.stringify(errorData)}`, 'error');
+                }
+
+            } catch (error) {
+                result.issues.push(`Network error: ${error.message}`);
+                log(`❌ Start Scan failed: ${error.message}`, 'error');
+            }
+
+            testResults['Start Scan'] = result;
+            updateResultsTable();
+        }
+
+        async function testAllEndpoints() {
+            log('🚀 Starting comprehensive test of all endpoints...', 'info');
+            clearDebug();
             
-            // Add hidden inputs
-            const merchantInput = document.createElement('input');
-            merchantInput.type = 'hidden';
-            merchantInput.name = 'merchant_id';
-            merchantInput.value = merchantId;
+            await healthCheckAll();
+            log('', 'info'); // Empty line
+            await testWebviewEntry();
+            log('', 'info'); // Empty line
+            await testStartScan();
             
-            const tokenInput = document.createElement('input');
-            tokenInput.type = 'hidden';
-            tokenInput.name = 'auth_token';
-            tokenInput.value = authToken;
+            log('✅ All tests completed! Check the results table above.', 'success');
             
-            this.appendChild(merchantInput);
-            this.appendChild(tokenInput);
+            // Summary
+            const successCount = Object.values(testResults).filter(r => r.success).length;
+            const totalCount = Object.keys(testResults).length;
             
-            console.log('🚀 Submitting to:', apiUrl);
-            console.log('📦 Data:', { merchant_id: merchantId, auth_token: authToken });
-            
-            // Submit the form
-            this.submit();
+            if (successCount === totalCount) {
+                log(`🎉 All ${totalCount} endpoints working correctly!`, 'success');
+            } else {
+                log(`⚠️ ${successCount}/${totalCount} endpoints working. Check issues above.`, 'warning');
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', function() {
+            log('🔧 API Tester loaded');
+            log('💡 Enter your deployed URL and click "Test All Endpoints"');
+            log('💡 Common issues: wrong base URL, CORS, localhost redirects');
         });
     </script>
 </body>
