@@ -131,8 +131,7 @@ export async function POST(request) {
       );
     }
 
-    // For Android WebView using POST, redirect to main page with params
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://4cc1-154-57-223-171.ngrok-free.app';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://card-detector-react-app-dawood-ayubs-projects.vercel.app';
     const redirectUrl = `${baseUrl}/securityscan?merchant_id=${encodeURIComponent(merchant_id)}&auth_token=${encodeURIComponent(auth_token)}`;
     
     return NextResponse.json({

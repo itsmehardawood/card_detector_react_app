@@ -175,8 +175,7 @@ export const sendFrameToAPI = async (frame, phase, sessionId, frameNumber) => {
       
       console.log(`📤 Sending frame ${frameNumber} for ${phase} phase to API (attempt ${attempt})...`);
       
-      // FIXED: Use the correct API URL that matches your backend
-      // Change this URL to match your actual backend URL
+      
       const apiUrl = `https://cardapp.hopto.org/detect/${merchantId}/${authToken}`;
       
       console.log(`🎯 API URL: ${apiUrl}`);
