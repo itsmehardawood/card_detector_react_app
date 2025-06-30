@@ -514,7 +514,30 @@ const CardDetectionApp = () => {
       }
     });
   };
+  // Add this to your page.js for testing
+  const testAPIConnection = async () => {
+    try {
+      const { merchantId, authToken } = window.__WEBVIEW_AUTH__;
+      const testUrl = `https://cardapp.hopto.org/detect/${merchantId}/${authToken}`;
+      
+      const formData = new FormData();
+      formData.append('test', 'connection');
+      
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        body: formData
+      });
+      
+      console.log('✅ API Connection Test:', response.status);
+    } catch (error) {
+      console.error('❌ API Connection Test Failed:', error);
+    }
+  };
 
+  // Call this when auth data is ready
+  if (authData) {
+    testAPIConnection();
+  }
   const startBackSideDetection = async () => {
     if (maxAttemptsReached) return;
     
