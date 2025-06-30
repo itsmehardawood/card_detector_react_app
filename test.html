@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test WebView Entry Redirect</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .url-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>🧪 Test WebView Entry Redirect</h1>
+        
+        <div class="info">
+            <strong>📋 Instructions:</strong>
+            <ol>
+                <li>Replace the URL below with your ngrok URL</li>
+                <li>Fill in test merchant credentials</li>
+                <li>Click "Test Redirect" to simulate the Android POST</li>
+                <li>Check if it redirects to the scan page (not localhost)</li>
+            </ol>
+        </div>
+
+        <form id="testForm" method="POST">
+            <label for="apiUrl">🌐 API URL:</label>
+            <input type="text" id="apiUrl" name="apiUrl" 
+                   value="https://4cc1-154-57-223-171.ngrok-free.app/securityscan/api/webview-entry" 
+                   placeholder="Your ngrok URL + /securityscan/api/webview-entry">
+
+            <label for="merchantId">🏪 Merchant ID:</label>
+            <input type="text" id="merchantId" name="merchant_id" 
+                   value="MERCHANT_12345" 
+                   placeholder="Enter merchant ID">
+
+            <label for="authToken">🔑 Auth Token:</label>
+            <input type="text" id="authToken" name="auth_token" 
+                   value="test_jwt_token_here_replace_with_real_token" 
+                   placeholder="Enter JWT token">
+
+            <button type="submit">🚀 Test Redirect</button>
+        </form>
+
+        <div class="info" style="margin-top: 20px;">
+            <strong>✅ Expected Result:</strong><br>
+            Should redirect to: <code>your-ngrok-url/securityscan?session=session_xxxxx&source=post</code>
+            <br><br>
+            <strong>❌ Problem Result:</strong><br>
+            Redirects to: <code>localhost:3000/securityscan?session=session_xxxxx&source=post</code>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const apiUrl = document.getElementById('apiUrl').value;
+            const merchantId = document.getElementById('merchantId').value;
+            const authToken = document.getElementById('authToken').value;
+            
+            // Update form action
+            this.action = apiUrl;
+            
+            // Add hidden inputs
+            const merchantInput = document.createElement('input');
+            merchantInput.type = 'hidden';
+            merchantInput.name = 'merchant_id';
+            merchantInput.value = merchantId;
+            
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'auth_token';
+            tokenInput.value = authToken;
+            
+            this.appendChild(merchantInput);
+            this.appendChild(tokenInput);
+            
+            console.log('🚀 Submitting to:', apiUrl);
+            console.log('📦 Data:', { merchant_id: merchantId, auth_token: authToken });
+            
+            // Submit the form
+            this.submit();
+        });
+    </script>
+</body>
+</html>
