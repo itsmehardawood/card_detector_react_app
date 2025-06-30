@@ -1,4 +1,5 @@
 // API Service for Card Detection
+// utils/apiService.js - Updated sendFrameToAPI function
 export const sendFrameToAPI = async (frame, phase, sessionId, frameNumber) => {
   const maxRetries = 2;
   let lastError = null;
@@ -13,7 +14,8 @@ export const sendFrameToAPI = async (frame, phase, sessionId, frameNumber) => {
       
       console.log(`Sending frame ${frameNumber} for ${phase} phase to API (attempt ${attempt})...`);
       
-      const response = await fetch('https://cardapp.hopto.org/detect', {
+      // Updated API endpoint to use session-based detection
+      const response = await fetch('http://127.0.0.1:9002/detect', {
         method: 'POST',
         body: formData,
         headers: {
