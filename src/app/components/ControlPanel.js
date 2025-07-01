@@ -112,12 +112,8 @@ const ControlPanel = ({
         {/* Phase: idle - Start Validation */}
         {currentPhase === 'idle' && (
           <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
-              Card Security Detection
-            </h3>
-            <p className="text-gray-600 mb-6 text-sm sm:text-base">
-              {/* Position your card in the camera view and start the validation process */}
-            </p>
+       
+         
             <button
               onClick={onStartValidation}
               disabled={isActive || maxAttemptsReached}
@@ -131,20 +127,19 @@ const ControlPanel = ({
         {/* Phase: validation */}
         {currentPhase === 'validation' && (
           <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-blue-600 mb-4">
-              Physical Card Validation
-            </h3>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="text-blue-800 text-sm sm:text-base mb-2">
-                {validationState.movementMessage || 'Validating physical card...'}
-              </p>
-              {isProcessing && (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
-                  <span className="text-blue-600 text-sm">Processing...</span>
-                </div>
-              )}
-            </div>
+        
+           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 min-h-[40px]">
+  {isProcessing ? (
+    <div className="flex items-center justify-center space-x-2">
+      <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
+      <span className="text-blue-600 text-sm">Processing...</span>
+    </div>
+  ) : (
+    // This empty span ensures space remains but no content shows
+    <span className="invisible">Processing...</span>
+  )}
+</div>
+
             <button
               onClick={onStop}
               className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
@@ -268,18 +263,7 @@ const ControlPanel = ({
           </div>
         )}
 
-        {/* Active detection indicator */}
-        {(detectionActive || isProcessing) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded-full animate-pulse"></div>
-              <span className="text-yellow-700 text-sm font-medium">
-                {isProcessing ? 'Processing Frame...' : 'Detection Active'}
-              </span>
-            </div>
-          </div>
-        )}
-
+   
         {/* Attempt Counter */}
         {attemptCount > 0 && !maxAttemptsReached && (
           <div className="mt-4">

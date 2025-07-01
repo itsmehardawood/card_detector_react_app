@@ -36,7 +36,7 @@ const CameraView = ({
       case "max-attempts-reached":
         return "Maximum attempts reached. Please contact support.";
       default:
-        return "Card Detection System";
+        return "Thank you, your card Scan is completed successfully";
     }
   };
 
