@@ -149,12 +149,12 @@ const FinalResponse = ({ finalResponse, onReset }) => {
 
       {/* Actions */}
       <div className="text-center space-y-3">
-        <button
+        {/* <button
           onClick={onReset}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
         >
           Process Another Card
-        </button>
+        </button> */}
         
         <div className="text-xs text-gray-500">
           Session completed with end-to-end encryption
