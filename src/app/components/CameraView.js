@@ -16,7 +16,7 @@ const CameraView = ({
       case "idle":
         return 'Position your card in camera view showing the frontside, avoid dark place and move the camera closer to the card.';
       case "validation":
-        return "Keep your card steady. Validating physical card...";
+        return "Follow the instructions, we are validating your card";
       case "ready-for-front":
         return 'Position the FRONT side of your card (with chip visible) and click "Scan Front Side"';
       case "front-countdown":
@@ -94,7 +94,7 @@ const CameraView = ({
 {currentPhase === "validation" && validationState?.movementMessage && (
   <div className="mt-4 text-center">
     <div
-      className={`text-white text-sm px-6 py-3 rounded-full shadow-md inline-block
+      className={`text-white border-2 border-red-600 text-sm px-6 py-3 rounded-xl shadow-md inline-block
        ${
         validationState.movementMessage === "Physical Card Validated!"
           ? "bg-green-500"

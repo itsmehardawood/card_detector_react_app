@@ -117,9 +117,9 @@ const ControlPanel = ({
             <button
               onClick={onStartValidation}
               disabled={isActive || maxAttemptsReached}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
             >
-              {isActive ? 'Processing...' : 'Start Card Scan'}
+              {isActive ? 'Processing...' : 'Start Scanning'}
             </button>
           </div>
         )}
@@ -176,30 +176,19 @@ const ControlPanel = ({
                 Scanning starts in {countdown} seconds...
               </p>
             )}
-            {/* {currentPhase === 'front' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${frontScanState.chipDetected ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span>Chip</span>
-                  </div>
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${frontScanState.bankLogoDetected ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span>Bank Logo</span>
-                  </div>
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${frontScanState.framesBuffered >= 6 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span>Frames ({frontScanState.framesBuffered}/6)</span>
-                  </div>
-                </div>
-              </div>
-            )} */}
+           
             <button
               onClick={onStop}
               className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
             >
               Stop Scanning
             </button>
+
+             {currentPhase === 'front' && (
+              <div className="bg-blue-50 border mt-2 text-blue-700 border-blue-200 rounded-lg p-4 mb-4">
+               Scanning and Processing card frames..
+              </div>
+            )}
           </div>
         )}
 
@@ -211,14 +200,7 @@ const ControlPanel = ({
             </h3>
        
             
-            {/* Debug info - remove this after testing
-            <div className="bg-gray-100 border rounded p-2 mb-4 text-xs">
-              <p>Debug: canProceedToBack = {String(frontScanState?.canProceedToBack)}</p>
-              <p>Debug: chipDetected = {String(frontScanState?.chipDetected)}</p>
-              <p>Debug: bankLogoDetected = {String(frontScanState?.bankLogoDetected)}</p>
-              <p>Debug: framesBuffered = {frontScanState?.framesBuffered || 0}</p>
-            </div> */}
-            
+                 
             <button
               onClick={onStartBackScan}
               disabled={isActive || maxAttemptsReached}
@@ -260,6 +242,12 @@ const ControlPanel = ({
             >
               Stop Scanning
             </button>
+
+              {currentPhase === 'back' && (
+              <div className="bg-blue-50 border text-blue-700 mt-2 border-blue-200 rounded-lg p-4 mb-4">
+               Scanning and Processing card frames..
+              </div>
+            )}
           </div>
         )}
 
