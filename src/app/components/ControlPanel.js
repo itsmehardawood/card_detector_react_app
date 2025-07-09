@@ -23,6 +23,7 @@ const ControlPanel = ({
   maxAttemptsReached
 }) => {
   const isActive = detectionActive || isProcessing || countdown > 0;
+  const isLastAttempt = attemptCount === maxAttempts - 1;
 
   // Show final encrypted response (from file 1)
   if (currentPhase === 'final_response' && finalOcrResults?.encrypted_card_data) {
@@ -50,14 +51,12 @@ const ControlPanel = ({
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
           <div className="mb-4">
-           
             <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Security Scan Detection Failed</h3>
-            {/* <p className="text-gray-700 mb-4 text-sm sm:text-base">{errorMessage}</p> */}
             <p className="text-red-700 mb-3">Please ensure the card is in a clear view.</p>
             
             {!maxAttemptsReached && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-blue-700 text-sm">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                <p className="text-orange-600 text-sm">
                   Attempt {attemptCount} of {maxAttempts}
                 </p>
                 <div className="text-sm text-red-600 mt-1">
@@ -67,22 +66,45 @@ const ControlPanel = ({
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {!maxAttemptsReached && (
               <button
                 onClick={onTryAgain}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 Try Again
               </button>
             )}
-            <button
-              onClick={onStartOver}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-            >
-              Start Over
-            </button>
           </div>
+          
+          {/* Show alternative payment methods when only one attempt left */}
+          {isLastAttempt && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 mb-3 font-medium">
+                Or try payment with:
+              </p>
+              <div className="flex justify-center items-center gap-4">
+                {/* Google Pay Logo */}
+                <div className="flex items-center justify-center bg-white rounded-lg p-3 shadow-sm border">
+                  <svg width="48" height="20" viewBox="0 0 48 20" fill="none">
+                    <path d="M19.7 10c0-2.8-2.2-5-5-5s-5 2.2-5 5 2.2 5 5 5 5-2.2 5-5zm-7.5 0c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5-2.5-1.1-2.5-2.5z" fill="#4285F4"/>
+                    <path d="M27.2 7.5h-4.8V5h4.8c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z" fill="#34A853"/>
+                    <path d="M27.2 12.5h-4.8V10h4.8c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z" fill="#FBBC04"/>
+                    <path d="M22.4 15h4.8c1.4 0 2.5-1.1 2.5-2.5v-5c0-1.4-1.1-2.5-2.5-2.5h-4.8v10z" fill="#EA4335"/>
+                  </svg>
+                  <span className="ml-2 text-sm font-medium text-gray-700">Google Pay</span>
+                </div>
+
+                {/* Apple Pay Logo */}
+                <div className="flex items-center justify-center bg-white rounded-lg p-3 shadow-sm border">
+                  <svg width="48" height="20" viewBox="0 0 48 20" fill="none">
+                    <path d="M11.5 1c-1.1 0-2.1.4-2.8 1.1-.7.7-1.1 1.7-1.1 2.8 0 .2 0 .4.1.6 1.2-.1 2.4-.6 3.2-1.4.8-.8 1.2-1.9 1.2-3-.4-.1-.4-.1-.6-.1zm1.3 3.2c-1.7 0-3.1.9-3.9.9s-2.2-.9-3.7-.9c-1.9 0-3.6 1.1-4.6 2.8-1.9 3.4-.5 8.4 1.4 11.2.9 1.4 2 2.9 3.4 2.9s1.9-.9 3.5-.9 2.1.9 3.5.9 2.4-1.4 3.3-2.8c1.1-1.6 1.5-3.2 1.5-3.3 0-.1-2.9-1.1-2.9-4.4 0-2.8 2.3-4.1 2.4-4.2-1.3-1.9-3.3-2.1-4-2.2z" fill="#000"/>
+                  </svg>
+                  <span className="ml-2 text-sm font-medium text-gray-700">Apple Pay</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -93,12 +115,10 @@ const ControlPanel = ({
     return (
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
-       
           <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-3">Oops! Currently, you have reached the maximum number of times you can scan.</h3>
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                      <p className="text-red-700 font-bold">Contact customer support for assistance or Retry the scanning process</p>
+            <p className="text-red-700 font-bold">Contact customer support for assistance or Retry the scanning process</p>
           </div>
-       
         </div>
       </div>
     );
@@ -112,8 +132,6 @@ const ControlPanel = ({
         {/* Phase: idle - Start Validation */}
         {currentPhase === 'idle' && (
           <div>
-       
-         
             <button
               onClick={onStartValidation}
               disabled={isActive || maxAttemptsReached}
@@ -121,24 +139,52 @@ const ControlPanel = ({
             >
               {isActive ? 'Processing...' : 'Start Scanning'}
             </button>
+
+            {/* Show alternative payment methods when only one attempt left during validation */}
+            {isLastAttempt && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800 mb-3 font-medium">
+                  Or try payment with:
+                </p>
+                <div className="flex justify-center items-center gap-4">
+                  {/* Google Pay Logo */}
+                  <div className="flex items-center justify-center bg-white rounded-lg p-3 shadow-sm border">
+                    <svg width="48" height="20" viewBox="0 0 48 20" fill="none">
+                      <path d="M19.7 10c0-2.8-2.2-5-5-5s-5 2.2-5 5 2.2 5 5 5 5-2.2 5-5zm-7.5 0c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5-2.5-1.1-2.5-2.5z" fill="#4285F4"/>
+                      <path d="M27.2 7.5h-4.8V5h4.8c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z" fill="#34A853"/>
+                      <path d="M27.2 12.5h-4.8V10h4.8c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z" fill="#FBBC04"/>
+                      <path d="M22.4 15h4.8c1.4 0 2.5-1.1 2.5-2.5v-5c0-1.4-1.1-2.5-2.5-2.5h-4.8v10z" fill="#EA4335"/>
+                    </svg>
+                    <span className="ml-2 text-sm font-medium text-gray-700">Google Pay</span>
+                  </div>
+
+                  {/* Apple Pay Logo */}
+                  <div className="flex items-center justify-center bg-white rounded-lg p-3 shadow-sm border">
+                    <svg width="48" height="20" viewBox="0 0 48 20" fill="none">
+                      <path d="M11.5 1c-1.1 0-2.1.4-2.8 1.1-.7.7-1.1 1.7-1.1 2.8 0 .2 0 .4.1.6 1.2-.1 2.4-.6 3.2-1.4.8-.8 1.2-1.9 1.2-3-.4-.1-.4-.1-.6-.1zm1.3 3.2c-1.7 0-3.1.9-3.9.9s-2.2-.9-3.7-.9c-1.9 0-3.6 1.1-4.6 2.8-1.9 3.4-.5 8.4 1.4 11.2.9 1.4 2 2.9 3.4 2.9s1.9-.9 3.5-.9 2.1.9 3.5.9 2.4-1.4 3.3-2.8c1.1-1.6 1.5-3.2 1.5-3.3 0-.1-2.9-1.1-2.9-4.4 0-2.8 2.3-4.1 2.4-4.2-1.3-1.9-3.3-2.1-4-2.2z" fill="#000"/>
+                    </svg>
+                    <span className="ml-2 text-sm font-medium text-gray-700">Apple Pay</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Phase: validation */}
         {currentPhase === 'validation' && (
           <div>
-        
-           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 min-h-[40px]">
-  {isProcessing ? (
-    <div className="flex items-center justify-center space-x-2">
-      <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
-      <span className="text-blue-600 text-sm">Processing...</span>
-    </div>
-  ) : (
-    // This empty span ensures space remains but no content shows
-    <span className="invisible">Processing...</span>
-  )}
-</div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 min-h-[40px]">
+              {isProcessing ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
+                  <span className="text-blue-600 text-sm">Processing...</span>
+                </div>
+              ) : (
+                // This empty span ensures space remains but no content shows
+                <span className="invisible">Processing...</span>
+              )}
+            </div>
 
             <button
               onClick={onStop}
@@ -184,9 +230,9 @@ const ControlPanel = ({
               Stop Scanning
             </button>
 
-             {currentPhase === 'front' && (
+            {currentPhase === 'front' && (
               <div className="bg-blue-50 border mt-2 text-blue-700 border-blue-200 rounded-lg p-4 mb-4">
-               Scanning and Processing card frames..
+                Scanning and Processing card frames..
               </div>
             )}
           </div>
@@ -198,9 +244,7 @@ const ControlPanel = ({
             <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
               Front Side Complete
             </h3>
-       
             
-                 
             <button
               onClick={onStartBackScan}
               disabled={isActive || maxAttemptsReached}
@@ -243,15 +287,14 @@ const ControlPanel = ({
               Stop Scanning
             </button>
 
-              {currentPhase === 'back' && (
+            {currentPhase === 'back' && (
               <div className="bg-blue-50 border text-blue-700 mt-2 border-blue-200 rounded-lg p-4 mb-4">
-               Scanning and Processing card frames..
+                Scanning and Processing card frames..
               </div>
             )}
           </div>
         )}
 
-   
         {/* Attempt Counter */}
         {attemptCount > 0 && !maxAttemptsReached && (
           <div className="mt-4">
