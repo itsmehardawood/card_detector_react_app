@@ -40,8 +40,8 @@ const ControlPanel = ({
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center mb-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">Detection Failed</h3>
-            <p className="text-red-700 mb-3">{errorMessage}</p>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Security Scan Detection Failed.</h3>
+            <p className="text-red-700 mb-3">Please ensure the card is in a clear view.</p>
             
             {attemptCount < maxAttempts && (
               <div className="text-sm text-red-600">
@@ -71,11 +71,11 @@ const ControlPanel = ({
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">Maximum Attempts Reached</h3>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">ou have reached the current maximum scanning trials.</h3>
             <p className="text-red-700 mb-3">{errorMessage}</p>
-            <p className="text-red-700 mb-3 font-bold">Contact on</p>
-            <p className='text-red-700  '>Email: support@lollicash.com</p>
-            <p className="text-red-700 mb-3">Phone: +1 6464509293</p>
+            <p className="text-red-700 mb-3 font-bold">Contact your Customer Service team.</p>
+            <p className='text-red-700  '>or</p>
+            <p className="text-red-700 mb-3"> Try scanning again</p>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@ const ControlPanel = ({
             disabled={isActive || maxAttemptsReached}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors w-full sm:w-auto"
           >
-            {isActive ? 'Validating...' : 'Start Validation'}
+            {isActive ? 'Validating...' : 'Start Card Scan'}
           </button>
         )}
 

@@ -561,53 +561,57 @@ const processValidationFrame = async () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-700 to-black p-4 sm:p-4">
-      <div className="container mx-auto max-w-4xl">
-        <h1 className="text-xl bg-white p-2 sm:text-2xl lg:text-3xl mb-5 rounded-md font-bold text-center mb-4 sm:mb-8 text-gray-900">
-          Card Protection Intelligence System
-        </h1>
+   <div className="min-h-screen bg-gradient-to-br from-gray-700 to-black p-4 sm:p-4">
+  <div className="container mx-auto max-w-4xl">
+    <h1 className="text-xl bg-white p-2 sm:text-2xl lg:text-3xl mb-5 rounded-md font-bold text-center mb-4 sm:mb-8 text-gray-900">
+Card Security Scan    </h1>
 
-        <CameraView
-          videoRef={videoRef}
-          canvasRef={canvasRef}
-          currentPhase={currentPhase}
-          countdown={countdown}
-          detectionActive={detectionActive}
-          validationState={validationState}
-          frontScanState={frontScanState}
-          isProcessing={isProcessing}
-        />
+    <CameraView
+      videoRef={videoRef}
+      canvasRef={canvasRef}
+      currentPhase={currentPhase}
+      countdown={countdown}
+      detectionActive={detectionActive}
+      validationState={validationState}
+      frontScanState={frontScanState}
+      isProcessing={isProcessing}
+    />
 
-        <ControlPanel
-          currentPhase={currentPhase}
-          onStartValidation={startCardValidation}
-          onStartFrontScan={startFrontSideDetection}
-          onStartBackScan={startBackSideDetection}
-          onStop={stopDetection}
-          onReset={resetApplication}
-          onTryAgain={handleTryAgain}
-          onStartOver={handleStartOver}
-          validationState={validationState}
-          frontScanState={frontScanState}
-          countdown={countdown}
-          errorMessage={errorMessage}
-          finalOcrResults={finalOcrResults}
-          detectionActive={detectionActive}
-          isProcessing={isProcessing}
-          attemptCount={attemptCount}
-          maxAttempts={MAX_ATTEMPTS}
-          maxAttemptsReached={maxAttemptsReached}
-        />
+    <ControlPanel
+      currentPhase={currentPhase}
+      onStartValidation={startCardValidation}
+      onStartFrontScan={startFrontSideDetection}
+      onStartBackScan={startBackSideDetection}
+      onStop={stopDetection}
+      onReset={resetApplication}
+      onTryAgain={handleTryAgain}
+      onStartOver={handleStartOver}
+      validationState={validationState}
+      frontScanState={frontScanState}
+      countdown={countdown}
+      errorMessage={errorMessage}
+      finalOcrResults={finalOcrResults}
+      detectionActive={detectionActive}
+      isProcessing={isProcessing}
+      attemptCount={attemptCount}
+      maxAttempts={MAX_ATTEMPTS}
+      maxAttemptsReached={maxAttemptsReached}
+    />
 
-        <StatusInformation
-          currentPhase={currentPhase}
-          sessionId={sessionId}
-          validationState={validationState}
-          frontScanState={frontScanState}
-          detectionActive={detectionActive}
-        />
-      </div>
-    </div>
+    <StatusInformation
+      currentPhase={currentPhase}
+      sessionId={sessionId}
+      validationState={validationState}
+      frontScanState={frontScanState}
+      detectionActive={detectionActive}
+    />
+  </div>
+
+  <footer className="text-center text-sm text-gray-400 mt-8">
+    © {new Date().getFullYear()} CardNest LLC. All rights reserved.
+  </footer>
+</div>
+
   );
 };
 
