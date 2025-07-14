@@ -131,7 +131,7 @@ export async function POST(request) {
       );
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://card-detector-react-dxf8pthne-dawood-ayubs-projects.vercel.app/';
+    // const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://card-detector-react-dxf8pthne-dawood-ayubs-projects.vercel.app/';
     const redirectUrl = `${baseUrl}/securityscan?merchant_id=${encodeURIComponent(merchant_id)}&auth_token=${encodeURIComponent(auth_token)}`;
     
     return NextResponse.json({

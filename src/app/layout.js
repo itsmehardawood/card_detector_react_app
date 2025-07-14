@@ -31,8 +31,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Card Detector",
-  description: "Created by Dawood",
+  title: "CardNest LLC - Scan, Detect, Analyze, Prevent",
 };
 
 export default function RootLayout({ children }) {
