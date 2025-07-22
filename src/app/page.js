@@ -207,9 +207,9 @@ const CardDetectionApp = () => {
       if (process.env.NODE_ENV === "development" || demo === "true") {
         console.log("🧪 Using development/demo auth data");
         const demoAuthObj = {
-          merchantId: "mer000099",
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY2FyZHNlY3VyaXR5c3lzdGVtLTh4ZGV6Lm9uZGlnaXRhbG9jZWFuLmFwcC9hcGkvbWVyY2hhbnRzY2FuL2dlbmVyYXRlVG9rZW4iLCJpYXQiOjE3NTMwOTY2MDcsImV4cCI6MTc1MzEwMDIwNywibmJmIjoxNzUzMDk2NjA3LCJqdGkiOiIzYXlPaXpHVEJMVHhOZlpIIiwic3ViIjoibWVyMDAwMDk5IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInNjYW5faWQiOiJiZTEzYWMxYS0wMTg1LTQyMDUtODMxNi1kOTYzZjYzZDI1YWEiLCJtZXJjaGFudF9pZCI6Im1lcjAwMDA5OSIsImVuY3J5cHRpb25fa2V5IjoiNFlncDdidHNVMW45NG9aTiIsImZlYXR1cmVzIjpudWxsfQ.-cfi2bqB1JbofcGiCDha541jsvSPVAEi6UfVRiOEyLY",
-            timestamp: Date.now(),
+          merchantId: "mer000084",
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY2FyZHNlY3VyaXR5c3lzdGVtLTh4ZGV6Lm9uZGlnaXRhbG9jZWFuLmFwcC9hcGkvbWVyY2hhbnRzY2FuL2dlbmVyYXRlVG9rZW4iLCJpYXQiOjE3NTMxNzk3NzYsImV4cCI6MTc1MzE4MzM3NiwibmJmIjoxNzUzMTc5Nzc2LCJqdGkiOiIxZURpdFJZNGFoVnVYT21mIiwic3ViIjoibWVyMDAwMDg0IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInNjYW5faWQiOiI2N2Q4NGMyNi1mNTY5LTQ4NTYtOGRjNS1kYTk5NmUwYmNhOGIiLCJtZXJjaGFudF9pZCI6Im1lcjAwMDA4NCIsImVuY3J5cHRpb25fa2V5IjoiSFpzN2tvUzIzMzFGRDhIeCIsImZlYXR1cmVzIjp7ImJhbmtfbG9nbyI6dHJ1ZSwiY2hpcCI6dHJ1ZSwibWFnX3N0cmlwIjp0cnVlLCJzaWdfc3RyaXAiOnRydWUsImhvbG9ncmFtIjp0cnVlLCJjdXN0b21lcl9zZXJ2aWNlIjp0cnVlLCJzeW1tZXRyeSI6dHJ1ZX19.d0tomRx-EOZmHhuWBkAF6-qm0-iuaPC95j0AxMyEfUs",
+           timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -553,6 +553,8 @@ const CardDetectionApp = () => {
           }
 
           setIsProcessing(false);
+            setDetectionActive(false); // ADD THIS LINE!
+
           // Reset attempt count on successful validation
           setAttemptCount(0);
           setCurrentOperation("");
@@ -591,6 +593,8 @@ const CardDetectionApp = () => {
           if (validationIntervalRef.current) {
             clearInterval(validationIntervalRef.current);
           }
+            setDetectionActive(false); // ADD THIS LINE!
+
 
           // Reset attempt count on successful validation
           setAttemptCount(0);
