@@ -208,8 +208,9 @@ const CardDetectionApp = () => {
         console.log("🧪 Using development/demo auth data");
         const demoAuthObj = {
           merchantId: "mer000084",
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY2FyZHNlY3VyaXR5c3lzdGVtLTh4ZGV6Lm9uZGlnaXRhbG9jZWFuLmFwcC9hcGkvbWVyY2hhbnRzY2FuL2dlbmVyYXRlVG9rZW4iLCJpYXQiOjE3NTMxNzk3NzYsImV4cCI6MTc1MzE4MzM3NiwibmJmIjoxNzUzMTc5Nzc2LCJqdGkiOiIxZURpdFJZNGFoVnVYT21mIiwic3ViIjoibWVyMDAwMDg0IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInNjYW5faWQiOiI2N2Q4NGMyNi1mNTY5LTQ4NTYtOGRjNS1kYTk5NmUwYmNhOGIiLCJtZXJjaGFudF9pZCI6Im1lcjAwMDA4NCIsImVuY3J5cHRpb25fa2V5IjoiSFpzN2tvUzIzMzFGRDhIeCIsImZlYXR1cmVzIjp7ImJhbmtfbG9nbyI6dHJ1ZSwiY2hpcCI6dHJ1ZSwibWFnX3N0cmlwIjp0cnVlLCJzaWdfc3RyaXAiOnRydWUsImhvbG9ncmFtIjp0cnVlLCJjdXN0b21lcl9zZXJ2aWNlIjp0cnVlLCJzeW1tZXRyeSI6dHJ1ZX19.d0tomRx-EOZmHhuWBkAF6-qm0-iuaPC95j0AxMyEfUs",
-           timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY2FyZHNlY3VyaXR5c3lzdGVtLTh4ZGV6Lm9uZGlnaXRhbG9jZWFuLmFwcC9hcGkvbWVyY2hhbnRzY2FuL2dlbmVyYXRlVG9rZW4iLCJpYXQiOjE3NTMyNjU1MDYsImV4cCI6MTc1MzI2OTEwNiwibmJmIjoxNzUzMjY1NTA2LCJqdGkiOiJtb1F2ZlNZTTB2eHVnNGlnIiwic3ViIjoibWVyMDAwMDg0IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInNjYW5faWQiOiI3MjBkMjhlYy02MGZmLTQ4YjktOWE0MS1lZDJlM2RhOTgyOTUiLCJtZXJjaGFudF9pZCI6Im1lcjAwMDA4NCIsImVuY3J5cHRpb25fa2V5IjoiSFpzN2tvUzIzMzFGRDhIeCIsImZlYXR1cmVzIjp7ImJhbmtfbG9nbyI6dHJ1ZSwiY2hpcCI6dHJ1ZSwibWFnX3N0cmlwIjp0cnVlLCJzaWdfc3RyaXAiOnRydWUsImhvbG9ncmFtIjp0cnVlLCJjdXN0b21lcl9zZXJ2aWNlIjp0cnVlLCJzeW1tZXRyeSI6dHJ1ZX19.fvZQKsPCUtaDoFaV0xzrS-I1lge2WqCn8WmBaHv2qHQ" ,
+          
+          timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -675,66 +676,113 @@ const CardDetectionApp = () => {
     });
   };
 
-  const startBackSideDetection = async () => {
-    if (maxAttemptsReached) return;
+  // const startBackSideDetection = async () => {
+  //   if (maxAttemptsReached) return;
 
-    setCurrentPhase("back-countdown");
-    setErrorMessage("");
+  //   setCurrentPhase("back-countdown");
+  //   setErrorMessage("");
 
-    startCountdown(async () => {
-      if (stopRequestedRef.current) return;
+  //   startCountdown(async () => {
+  //     if (stopRequestedRef.current) return;
 
-      setCurrentPhase("back");
-      setDetectionActive(true);
-      stopRequestedRef.current = false;
+  //     setCurrentPhase("back");
+  //     setDetectionActive(true);
+  //     stopRequestedRef.current = false;
 
-      // Start detection timeout
-      startDetectionTimeout("Back side");
+  //     // Start detection timeout
+  //     startDetectionTimeout("Back side");
 
-      try {
-        const finalResult = await captureAndSendFrames("back");
+  //     try {
+  //       const finalResult = await captureAndSendFrames("back");
 
-        if (!stopRequestedRef.current) {
-          clearDetectionTimeout();
-          setDetectionActive(false);
+  //       if (!stopRequestedRef.current) {
+  //         clearDetectionTimeout();
+  //         setDetectionActive(false);
 
-          console.log("🔍 Checking final result:", finalResult);
+  //         console.log("🔍 Checking final result:", finalResult);
 
-          if (finalResult.encrypted_card_data && finalResult.status) {
-            console.log(
-              "🎯 Final encrypted response detected - Setting phase to final_response"
-            );
-            console.log(
-              `Status: ${finalResult.status}, Score: ${finalResult.score}`
-            );
-            setFinalOcrResults(finalResult);
-            setCurrentPhase("final_response");
-          } else if (finalResult.final_ocr) {
-            console.log("📋 Regular OCR results - Setting phase to results");
-            setFinalOcrResults(finalResult);
-            setCurrentPhase("results");
-          } else {
-            console.log("⚠️ No final OCR or encrypted data found");
-            setFinalOcrResults(finalResult);
-            setCurrentPhase("results");
-          }
+  //         if (finalResult.encrypted_card_data && finalResult.status) {
+  //           console.log(
+  //             "🎯 Final encrypted response detected - Setting phase to final_response"
+  //           );
+  //           console.log(
+  //             `Status: ${finalResult.status}, Score: ${finalResult.score}`
+  //           );
+  //           setFinalOcrResults(finalResult);
+  //           setCurrentPhase("final_response");
+  //         } else if (finalResult.final_ocr) {
+  //           console.log("📋 Regular OCR results - Setting phase to results");
+  //           setFinalOcrResults(finalResult);
+  //           setCurrentPhase("results");
+  //         } else {
+  //           console.log("⚠️ No final OCR or encrypted data found");
+  //           setFinalOcrResults(finalResult);
+  //           setCurrentPhase("results");
+  //         }
 
-          // Reset attempt count on successful completion
+  //         // Reset attempt count on successful completion
+  //         setAttemptCount(0);
+  //         setCurrentOperation("");
+  //       }
+  //     } catch (error) {
+  //       console.error("Back side detection failed:", error);
+  //       setDetectionActive(false);
+  //       if (!stopRequestedRef.current) {
+  //         handleDetectionFailure(
+  //           `Back side detection failed: ${error.message}`,
+  //           "back"
+  //         );
+  //       }
+  //     }
+  //   });
+  // };
+
+
+const startBackSideDetection = async () => {
+  if (maxAttemptsReached) return;
+
+  setCurrentPhase("back-countdown");
+  setErrorMessage("");
+
+  startCountdown(async () => {
+    if (stopRequestedRef.current) return;
+
+    setCurrentPhase("back");
+    setDetectionActive(true);
+    stopRequestedRef.current = false;
+
+    startDetectionTimeout("Back side");
+
+    try {
+      const finalResult = await captureAndSendFrames("back");
+
+      if (!stopRequestedRef.current) {
+        clearDetectionTimeout();
+        setDetectionActive(false);
+
+        console.log("🔍 Checking final result:", finalResult);
+
+        if (finalResult?.status === "success" && finalResult?.complete_scan === true) {
+          console.log("✅ Valid back-side scan received, transitioning to 'results'");
+          setFinalOcrResults(finalResult);
+          setCurrentPhase("results");
           setAttemptCount(0);
           setCurrentOperation("");
-        }
-      } catch (error) {
-        console.error("Back side detection failed:", error);
-        setDetectionActive(false);
-        if (!stopRequestedRef.current) {
-          handleDetectionFailure(
-            `Back side detection failed: ${error.message}`,
-            "back"
-          );
+        } else {
+          console.log("⚠️ Scan result didn't meet success + complete_scan criteria");
+          handleDetectionFailure("Back scan incomplete or failed.", "back");
         }
       }
-    });
-  };
+    } catch (error) {
+      console.error("Back side detection failed:", error);
+      setDetectionActive(false);
+      if (!stopRequestedRef.current) {
+        handleDetectionFailure(`Back side detection failed: ${error.message}`, "back");
+      }
+    }
+  });
+};
+
 
   const resetApplication = () => {
     stopRequestedRef.current = true;
