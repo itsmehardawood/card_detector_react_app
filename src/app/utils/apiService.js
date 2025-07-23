@@ -10,7 +10,7 @@ export const sendFrameToAPI = async (frameBlob, phase, sessionId, frameNumber) =
   if (!merchantId || !authToken) {
     throw new Error("Missing auth credentials.");
   }
-  const apiUrl = `https://f3da1b09ed94.ngrok-free.app/detect/${merchantId}`;
+  const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
   // :white_check_mark: Create File from Blob for FastAPI UploadFile
   const file = new File([frameBlob], `${phase}_frame_${frameNumber}.jpg`, {
     type: "image/jpeg",
