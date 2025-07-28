@@ -74,58 +74,72 @@ const CameraView = ({
     const animationClass = "animate-pulse";
     const arrowSize = "w-16 h-16 sm:w-20 sm:h-20";
     const arrowStyle = {
-      filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6))',
+    filter: 'drop-shadow(0 0 8px rgba(220, 38, 38, 0.6))', // red-600 @ 60%
       strokeWidth: '2.5'
     };
 
     return (
-     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-15">
+   
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-15">
   <div className="relative w-3/4 h-3/4">
     {direction === 'up' && (
       <div className={`absolute top-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
         <ArrowBigUp 
-          className={`${arrowSize} text-red-600`}
-          style={arrowStyle}
-          fill="rgba(220, 38, 38, 0.15)" // red-600 @ 15% opacity
-          stroke="rgba(220, 38, 38, 0.9)" // red-600 @ 90% opacity
+          className={`${arrowSize}`}
+          style={{
+            ...arrowStyle,
+            fill: 'rgba(220, 38, 38, 0.15)',    // red-600 @ 15%
+            stroke: 'rgba(220, 38, 38, 0.9)',   // red-600 @ 90%
+            color: '#dc2626',                   // red-600
+          }}
         />
       </div>
     )}
-    
+
     {direction === 'down' && (
       <div className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
         <ArrowBigDown 
-          className={`${arrowSize} text-red-600`}
-          style={arrowStyle}
-          fill="rgba(220, 38, 38, 0.15)"
-          stroke="rgba(220, 38, 38, 0.9)"
+          className={`${arrowSize}`}
+          style={{
+            ...arrowStyle,
+            fill: 'rgba(220, 38, 38, 0.15)',
+            stroke: 'rgba(220, 38, 38, 0.9)',
+            color: '#dc2626',
+          }}
         />
       </div>
     )}
-    
+
     {direction === 'left' && (
       <div className={`absolute left-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
         <ArrowBigLeft 
-          className={`${arrowSize} text-red-600`}
-          style={arrowStyle}
-          fill="rgba(220, 38, 38, 0.15)"
-          stroke="rgba(220, 38, 38, 0.9)"
+          className={`${arrowSize}`}
+          style={{
+            ...arrowStyle,
+            fill: 'rgba(220, 38, 38, 0.15)',
+            stroke: 'rgba(220, 38, 38, 0.9)',
+            color: '#dc2626',
+          }}
         />
       </div>
     )}
-    
+
     {direction === 'right' && (
       <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
         <ArrowBigRight 
-          className={`${arrowSize} text-red-600`}
-          style={arrowStyle}
-          fill="rgba(220, 38, 38, 0.15)"
-          stroke="rgba(220, 38, 38, 0.9)"
+          className={`${arrowSize}`}
+          style={{
+            ...arrowStyle,
+            fill: 'rgba(220, 38, 38, 0.15)',
+            stroke: 'rgba(220, 38, 38, 0.9)',
+            color: '#dc2626',
+          }}
         />
       </div>
     )}
   </div>
 </div>
+
 
     );
   };
