@@ -79,53 +79,54 @@ const CameraView = ({
     };
 
     return (
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-15">
-        <div className="relative w-3/4 h-3/4">
-          {direction === 'up' && (
-            <div className={`absolute top-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
-              <ArrowBigUp 
-                className={`${arrowSize} text-red-600`}
-                style={arrowStyle}
-                fill="rgba(59, 130, 246, 0.15)"
-                stroke="rgba(59, 130, 246, 0.9)"
-              />
-            </div>
-          )}
-          
-          {direction === 'down' && (
-            <div className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
-              <ArrowBigDown 
-                className={`${arrowSize} text-red-600`}
-                style={arrowStyle}
-                fill="rgba(59, 130, 246, 0.15)"
-                stroke="rgba(59, 130, 246, 0.9)"
-              />
-            </div>
-          )}
-          
-          {direction === 'left' && (
-            <div className={`absolute left-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
-              <ArrowBigLeft 
-                className={`${arrowSize} text-red-600`}
-                style={arrowStyle}
-                fill="rgba(59, 130, 246, 0.15)"
-                stroke="rgba(59, 130, 246, 0.9)"
-              />
-            </div>
-          )}
-          
-          {direction === 'right' && (
-            <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
-              <ArrowBigRight 
-                className={`${arrowSize} text-red-600`}
-                style={arrowStyle}
-                fill="rgba(59, 130, 246, 0.15)"
-                stroke="rgba(59, 130, 246, 0.9)"
-              />
-            </div>
-          )}
-        </div>
+     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-15">
+  <div className="relative w-3/4 h-3/4">
+    {direction === 'up' && (
+      <div className={`absolute top-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
+        <ArrowBigUp 
+          className={`${arrowSize} text-red-600`}
+          style={arrowStyle}
+          fill="rgba(220, 38, 38, 0.15)" // red-600 @ 15% opacity
+          stroke="rgba(220, 38, 38, 0.9)" // red-600 @ 90% opacity
+        />
       </div>
+    )}
+    
+    {direction === 'down' && (
+      <div className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
+        <ArrowBigDown 
+          className={`${arrowSize} text-red-600`}
+          style={arrowStyle}
+          fill="rgba(220, 38, 38, 0.15)"
+          stroke="rgba(220, 38, 38, 0.9)"
+        />
+      </div>
+    )}
+    
+    {direction === 'left' && (
+      <div className={`absolute left-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
+        <ArrowBigLeft 
+          className={`${arrowSize} text-red-600`}
+          style={arrowStyle}
+          fill="rgba(220, 38, 38, 0.15)"
+          stroke="rgba(220, 38, 38, 0.9)"
+        />
+      </div>
+    )}
+    
+    {direction === 'right' && (
+      <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
+        <ArrowBigRight 
+          className={`${arrowSize} text-red-600`}
+          style={arrowStyle}
+          fill="rgba(220, 38, 38, 0.15)"
+          stroke="rgba(220, 38, 38, 0.9)"
+        />
+      </div>
+    )}
+  </div>
+</div>
+
     );
   };
 
