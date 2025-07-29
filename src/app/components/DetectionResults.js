@@ -1,5 +1,4 @@
 import React from "react";
-import JsonResponseViewer from "./JsonFormate";
 
 const DetectionResults = ({ finalOcrResults, onReset }) => {
   if (!finalOcrResults) return null;
@@ -12,7 +11,6 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
     bank_logo,
     magstrip,
     signstrip,
-    customer_service_detected,
     hologram,
     symmetry,
   } = finalOcrResults;
@@ -97,81 +95,7 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
         </div>
       )}
 
-      {/* Detection Summary */}
-      <div className="mb-6 p-3 sm:p-4 bg-blue-50 border text-black border-blue-200 rounded-lg">
-        <h3 className="text-base sm:text-lg font-semibold mb-3 text-blue-700">
-          Detection Summary
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2 text-xs sm:text-sm">
-            <div className="flex justify-between">
-              <span>Overall Confidence:</span>
-              <span className="font-medium">{Math.round(confidence)}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Physical Card:</span>
-              <span
-                className={physical_card ? "text-green-600" : "text-red-600"}
-              >
-                {physical_card ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Chip:</span>
-              <span className={chip ? "text-green-600" : "text-red-600"}>
-                {chip ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Bank Logo:</span>
-              <span className={bank_logo ? "text-green-600" : "text-red-600"}>
-                {bank_logo ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Hologram:</span>
-              <span className={hologram ? "text-green-600" : "text-red-600"}>
-                {hologram ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-          </div>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <div className="flex justify-between">
-              <span>Magnetic Strip:</span>
-              <span className={magstrip ? "text-green-600" : "text-red-600"}>
-                {magstrip ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Signature Strip:</span>
-              <span className={signstrip ? "text-green-600" : "text-red-600"}>
-                {signstrip ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Customer Service:</span>
-              <span
-                className={
-                  final_ocr.customer_service.detected
-                    ? "text-green-600"
-                    : "text-red-600"
-                }
-              >
-                {final_ocr.customer_service.detected
-                  ? "Detected"
-                  : "Not Detected"}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Symmetry:</span>
-              <span className={symmetry ? "text-green-600" : "text-red-600"}>
-                {symmetry ? "Detected" : "Not Detected"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+    
 
       {/* Raw JSON Response Viewer */}
 
