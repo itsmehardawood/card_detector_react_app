@@ -208,8 +208,7 @@ const CardDetectionApp = () => {
         console.log("🧪 Using development/demo auth data");
         const demoAuthObj = {
           merchantId: "mer000084",
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY2FyZHNlY3VyaXR5c3lzdGVtLTh4ZGV6Lm9uZGlnaXRhbG9jZWFuLmFwcC9hcGkvbWVyY2hhbnRzY2FuL2dlbmVyYXRlVG9rZW4iLCJpYXQiOjE3NTMyNjU1MDYsImV4cCI6MTc1MzI2OTEwNiwibmJmIjoxNzUzMjY1NTA2LCJqdGkiOiJtb1F2ZlNZTTB2eHVnNGlnIiwic3ViIjoibWVyMDAwMDg0IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInNjYW5faWQiOiI3MjBkMjhlYy02MGZmLTQ4YjktOWE0MS1lZDJlM2RhOTgyOTUiLCJtZXJjaGFudF9pZCI6Im1lcjAwMDA4NCIsImVuY3J5cHRpb25fa2V5IjoiSFpzN2tvUzIzMzFGRDhIeCIsImZlYXR1cmVzIjp7ImJhbmtfbG9nbyI6dHJ1ZSwiY2hpcCI6dHJ1ZSwibWFnX3N0cmlwIjp0cnVlLCJzaWdfc3RyaXAiOnRydWUsImhvbG9ncmFtIjp0cnVlLCJjdXN0b21lcl9zZXJ2aWNlIjp0cnVlLCJzeW1tZXRyeSI6dHJ1ZX19.fvZQKsPCUtaDoFaV0xzrS-I1lge2WqCn8WmBaHv2qHQ" ,
-          
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU0Mjg4OTQ5LCJleHAiOjE3NTQyOTI1NDksIm5iZiI6MTc1NDI4ODk0OSwianRpIjoiMWI4Z0xvZjB3dmUzUGg1ZiIsInN1YiI6Im1lcjAwMDA4NCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJzY2FuX2lkIjoiM2EyYjRjYzUtYTFhNS00Yjg3LTkyZTctMTg5N2FlOTBlNWNmIiwibWVyY2hhbnRfaWQiOiJtZXIwMDAwODQiLCJlbmNyeXB0aW9uX2tleSI6Ikhaczdrb1MyMzMxRkQ4SHgiLCJmZWF0dXJlcyI6bnVsbH0.unJBgURl4Sf-76PQNXbzV1FsE5ccPj8kvqd8h_VcGWM" ,
           timestamp: Date.now(),
           source: "development_demo",
         };
