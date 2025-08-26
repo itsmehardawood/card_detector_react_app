@@ -79,12 +79,12 @@ const CameraView = ({
     strokeWidth: '2.5',
   };
 
-  const commonStyle = {
-    ...arrowStyle,
-    fill: 'rgba(0, 0, 0, 0.15)',     // black fill @ 15%
-    stroke: 'rgba(0, 0, 0, 0.9)',    // black stroke @ 90%
-    color: '#000000',               // black
-  };
+    const commonStyle = {
+      ...arrowStyle,
+      fill: '#6FE7B2',                // light green fill
+      stroke: '#000000',              // black border
+      color: '#000000',               // black
+    };
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-15">
