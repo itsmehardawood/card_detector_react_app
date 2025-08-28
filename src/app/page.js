@@ -1143,8 +1143,8 @@ const [formData, setFormData] = useState({
 //   fetchMerchantInfo();
 // }, [scanId]);
 
-const merchantIdValue = 'G5536942984B2978';
-// const merchantIdValue = Merchant;
+// const merchantIdValue = 'G5536942984B2978';
+const merchantIdValue = Merchant;
 
 
 useEffect(()=>{
