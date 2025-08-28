@@ -1146,93 +1146,81 @@ const [formData, setFormData] = useState({
 //   fetchMerchantInfo();
 // }, [scanId]);
 
-// const merchantIdValue = 'G5536942984B2978';
-const merchantIdValue = Merchant;
-useEffect(()=>{
-  const fetchMerchantDisplayInfo = async () => {
-
-    if (!merchantIdValue){
-      // setDebugInfo('No merchantId found in URL');
+  // Function to fetch merchant display information
+  const fetchMerchantDisplayInfo = async (merchantId) => {
+    if (!merchantId) {
+      console.log('🚫 No merchantId provided to fetchMerchantDisplayInfo');
       return;
     }
        
-  try {
-    setDebugInfo('Fetching existing display info...');
+    try {
+      console.log('🔍 Fetching merchant display info for:', merchantId);
+      setDebugInfo('Fetching existing display info...');
 
-    const response = await fetch(
-      `https://admin.cardnest.io/api/getmerchantDisplayInfo?merchantId=${encodeURIComponent(merchantIdValue)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    console.log('GET API Response status:', response.status);
-
-    let result;
-    const contentType = response.headers.get('content-type');
-
-    if (contentType && contentType.includes('application/json')) {
-      result = await response.json();
-    } else {
-      const textResult = await response.text();
-      console.log('Non-JSON response:', textResult);
-
-      try {
-        result = JSON.parse(textResult);
-      } catch {
-        result = { message: textResult };
-      }
-    }
-
-    console.log('GET API Response result:', result);
-
-    if (response.ok && (result.status === true || result.success === true)) {
-      // Pre-populate form with existing data
-      if (result.data) {
-        const { display_name, display_logo } = result.data;
-
-        // if (display_name) {
-        //   setFormData((prev) => ({
-        //     ...prev,
-        //     displayName: display_name,
-        //   }));
-        // }
-
-        // if (display_logo) {
-        //   setExistingLogoUrl(display_logo);
-        //   setLogoPreview(display_logo);
-        // }
-
-
-        if (display_name) {
-          setMerchantName(display_name);
+      const response = await fetch(
+        `https://admin.cardnest.io/api/getmerchantDisplayInfo?merchantId=${encodeURIComponent(merchantId)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         }
+      );
 
-        if (display_logo) {
-          setMerchantLogo(display_logo);
-        }
+      console.log('📡 GET API Response status:', response.status);
 
+      let result;
+      const contentType = response.headers.get('content-type');
 
-        setDebugInfo('Existing data loaded successfully');
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
       } else {
-        setDebugInfo('No existing data found');
+        const textResult = await response.text();
+        console.log('Non-JSON response:', textResult);
+
+        try {
+          result = JSON.parse(textResult);
+        } catch {
+          result = { message: textResult };
+        }
       }
-    } else {
-      // console.log('No existing data or API error:', result.message || 'Unknown error');
-      setDebugInfo('No existing data found or API error');
+
+      console.log('📊 GET API Response result:', result);
+
+      if (response.ok && (result.status === true || result.success === true)) {
+        if (result.data) {
+          const { display_name, display_logo } = result.data;
+
+          if (display_name) {
+            console.log('✅ Setting merchant name:', display_name);
+            setMerchantName(display_name);
+          }
+
+          if (display_logo) {
+            console.log('✅ Setting merchant logo:', display_logo);
+            setMerchantLogo(display_logo);
+          }
+
+          setDebugInfo('Existing data loaded successfully');
+        } else {
+          setDebugInfo('No existing data found');
+        }
+      } else {
+        setDebugInfo('No existing data found or API error');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching merchant display info:', error);
+      setDebugInfo(`Error fetching data: ${error.message}`);
     }
-  } catch (error) {
-    console.error('❌ Error fetching merchant display info:', error);
-    setDebugInfo(`Error fetching data: ${error.message}`);
-    // Don't set this as a submit error since it's just for loading existing data
-  }
-};
-  // 👉 Call your function here
-  fetchMerchantDisplayInfo();
-}, [merchantIdValue])
+  };
+
+  // Call fetchMerchantDisplayInfo when Merchant state is updated
+  useEffect(() => {
+    if (Merchant) {
+      console.log('� Merchant ID available, fetching display info:', Merchant);
+      fetchMerchantDisplayInfo(Merchant);
+    }
+  }, [Merchant])
 
 
 
@@ -1309,8 +1297,11 @@ useEffect(()=>{
       const source = urlParams.get("source");
       const demo = urlParams.get("demo");
 
+      // Set merchant ID immediately when found in URL params
+      if (merchantId) {
+        console.log("🏪 Setting merchant ID from URL:", merchantId);
         setMerchant(merchantId);
-
+      }
 
       // Method 1: Session-based auth (most secure)
       if (sessionId) {
@@ -1337,6 +1328,12 @@ useEffect(()=>{
             setAuthData(authObj);
             window.__WEBVIEW_AUTH__ = authObj;
             setAuthLoading(false);
+
+            // Set merchant from session data if not already set from URL
+            if (sessionData.merchantId) {
+              console.log("🏪 Setting merchant ID from session:", sessionData.merchantId);
+              setMerchant(sessionData.merchantId);
+            }
 
             // Clean URL (remove session ID)
             const cleanUrl = window.location.pathname;
@@ -1379,23 +1376,29 @@ useEffect(()=>{
         return;
       }
 
-      // Method 3: Demo mode (development only)
-      if (process.env.NODE_ENV === "development" || demo === "true") {
-        console.log("🧪 Using development/demo auth data");
-        const demoAuthObj = {
-          merchantId: "G5536942984B2978",
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU2MzY1NTU4LCJleHAiOjE3NTYzNjkxNTgsIm5iZiI6MTc1NjM2NTU1OCwianRpIjoiNXZ3WlRTUndmbnowYjNzSyIsInN1YiI6Ikc1NTM2OTQyOTg0QjI5NzgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjNhYTM0NDEwLTM4Y2UtNGNhNC1iZjg4LTNhMmVmMzNhN2YyZSIsIm1lcmNoYW50X2lkIjoiRzU1MzY5NDI5ODRCMjk3OCIsImVuY3J5cHRpb25fa2V5IjoiN3czdklOcDFDcVhOME5nNyIsImZlYXR1cmVzIjpudWxsfQ.4ynheHJuGaWKQM3Ares8IJWPxs7Rtz89UjhwTe7HDbs",
-          timestamp: Date.now(),
-          source: "development_demo",
-        };
+        // Method 3: Demo mode (development only)
+        if (process.env.NODE_ENV === "development" || demo === "true") {
+          console.log("🧪 Using development/demo auth data");
+          const demoMerchantId = "G5536942984B2978";
+          const demoAuthObj = {
+            merchantId: demoMerchantId,
+            authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU2MzY1NTU4LCJleHAiOjE3NTYzNjkxNTgsIm5iZiI6MTc1NjM2NTU1OCwianRpIjoiNXZ3WlRTUndmbnowYjNzSyIsInN1YiI6Ikc1NTM2OTQyOTg0QjI5NzgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjNhYTM0NDEwLTM4Y2UtNGNhNC1iZjg4LTNhMmVmMzNhN2YyZSIsIm1lcmNoYW50X2lkIjoiRzU1MzY5NDI5ODRCMjk3OCIsImVuY3J5cHRpb25fa2V5IjoiN3czdklOcDFDcVhOME5nNyIsImZlYXR1cmVzIjpudWxsfQ.4ynheHJuGaWKQM3Ares8IJWPxs7Rtz89UjhwTe7HDbs",
+            timestamp: Date.now(),
+            source: "development_demo",
+          };
 
-        setAuthData(demoAuthObj);
-        window.__WEBVIEW_AUTH__ = demoAuthObj;
-        setAuthLoading(false);
-        return;
-      }
-
-      // No auth data found
+          setAuthData(demoAuthObj);
+          window.__WEBVIEW_AUTH__ = demoAuthObj;
+          setAuthLoading(false);
+          
+          // Set demo merchant ID if not already set from URL
+          if (!merchantId) {
+            console.log("🏪 Setting demo merchant ID:", demoMerchantId);
+            setMerchant(demoMerchantId);
+          }
+          
+          return;
+        }      // No auth data found
       console.error("❌ No authentication data found");
       console.error("Available URL params:", Array.from(urlParams.entries()));
       setAuthError("No authentication data received from Android app");
