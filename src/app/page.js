@@ -1096,53 +1096,57 @@ const [formData, setFormData] = useState({
 
       console.log('📊 GET API Response result:', result);
 
-      // if (response.ok && (result.status === true || result.success === true)) {
-      //   if (result.data) {
-      //     const { display_name, display_logo } = result.data;
-
-      //     if (display_name) {
-      //       console.log('✅ Setting merchant name:', display_name);
-      //       setMerchantName(display_name);
-      //     }
-
-      //     if (display_logo) {
-      //       console.log('✅ Setting merchant logo:', display_logo);
-      //       setMerchantLogo(display_logo);
-      //     }
-
-      //     setDebugInfo('Existing data loaded successfully');
-      //   } else {
-      //     setDebugInfo('No existing data found');
-      //   }
-      // } else {
-      //   setDebugInfo('No existing data found or API error');
-      // }
-
-
-
       if (response.ok && (result.status === true || result.success === true)) {
-  if (result.data) {
-    const { display_name, display_logo } = result.data;
+        if (result.data) {
+          const { display_name, display_logo } = result.data;
 
-    if (display_name) {
-      console.log('✅ Setting merchant name:', display_name);
-      setMerchantName(display_name);
-    }
+          if (display_name) {
+            console.log('✅ Setting merchant name:', display_name);
+            setMerchantName(display_name);
+          }
 
-    if (display_logo) {
-      // 🔒 Force HTTPS
-      const safeLogo = display_logo.replace(/^http:\/\//i, "https://");
-      console.log('✅ Setting merchant logo:', safeLogo);
-      setMerchantLogo(safeLogo);
-    }
+          if (display_logo) {
+            console.log('✅ Setting merchant logo:', display_logo);
+            setMerchantLogo(display_logo);
+          }
 
-    setDebugInfo('Existing data loaded successfully');
-  } else {
-    setDebugInfo('No existing data found');
-  }
-} else {
-  setDebugInfo('No existing data found or API error');
-}
+          setDebugInfo('Existing data loaded successfully');
+        } else {
+          setDebugInfo('No existing data found');
+        }
+      } else {
+        setDebugInfo('No existing data found or API error');
+      }
+
+
+
+
+
+      // new
+
+//       if (response.ok && (result.status === true || result.success === true)) {
+//   if (result.data) {
+//     const { display_name, display_logo } = result.data;
+
+//     if (display_name) {
+//       console.log('✅ Setting merchant name:', display_name);
+//       setMerchantName(display_name);
+//     }
+
+//     if (display_logo) {
+//       // 🔒 Force HTTPS
+//       const safeLogo = display_logo.replace(/^http:\/\//i, "https://");
+//       console.log('✅ Setting merchant logo:', safeLogo);
+//       setMerchantLogo(safeLogo);
+//     }
+
+//     setDebugInfo('Existing data loaded successfully');
+//   } else {
+//     setDebugInfo('No existing data found');
+//   }
+// } else {
+//   setDebugInfo('No existing data found or API error');
+// }
 
 
 
