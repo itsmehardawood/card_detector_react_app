@@ -984,6 +984,7 @@ import {
 } from "./utils/CameraUtils";
 import { sendFrameToAPI } from "./utils/apiService";
 import { useDetection } from "./hooks/UseDetection";
+import Image from "next/image";
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 5;
@@ -1055,98 +1056,6 @@ const [formData, setFormData] = useState({
   const stopRequestedRef = useRef(false);
   const detectionTimeoutRef = useRef(null);
 
-  const scanId = '3aa34410-38ce-4ca4-bf88-3a2ef33a7f2e';
-   
-//   useEffect(() => {
-//   const fetchMerchantInfo = async () => {
-//     if (!scanId) {
-//       setMerchantInfo((prev) => ({
-//         ...prev,
-//         loading: false,
-//         error: 'Scan ID not found in URL',
-//       }));
-//       return;
-//     }
-
-//     try {
-//       console.log('🔍 Fetching merchant info for scanId:', scanId);
-
-//       setMerchantInfo((prev) => ({ ...prev, loading: true, error: null }));
-
-//       // Create a timeout promise that rejects after 3 seconds
-//       const timeoutPromise = new Promise((_, reject) => {
-//         setTimeout(() => reject(new Error('Request timeout')), 3000);
-//       });
-
-//       // Create the fetch promise
-//       const fetchPromise = fetch(
-//         `https://admin.cardnest.io/api/getmerchantscanInfo?scanId=${scanId}`,
-//         {
-//           method: 'GET',
-//           headers: {
-//             Accept: 'application/json',
-//           },
-//         }
-//       );
-
-//       // Race between fetch and timeout
-//       const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-//       console.log('📡 API Response status:', response.status);
-
-//       if (!response.ok) {
-//         throw new Error(`HTTP error! status: ${response.status}`);
-//       }
-
-//       const result = await response.json();
-//       console.log('📊 Merchant info response:', result);
-
-//       // Check if we have valid merchant data
-//       const hasValidData =
-//         result.status === true &&
-//         result.data &&
-//         (result.data.display_name || result.data.display_logo);
-
-//       if (hasValidData) {
-//         const merchantInfo = setMerchantInfo({
-//           display_name: result.data.display_name || '',
-//           display_logo: result.data.display_logo || '',
-//           merchant_id: result.data.merchant_id || '',
-//           loading: false,
-//           error: null,
-//         });
-//         console.log('✅ Merchant info loaded successfully', merchantInfo);
-//       } else {
-//         // No valid merchant data, show fallback
-//         setMerchantInfo({
-//           display_name: '',
-//           display_logo: '',
-//           merchant_id: '',
-//           loading: false,
-//           error: null,
-//         });
-//         console.log('ℹ️ No merchant data available, showing fallback');
-//       }
-//     } catch (error) {
-//       console.error('❌ Error fetching merchant info:', error);
-
-//       // For timeout or any error, show fallback instead of error message
-//       setMerchantInfo({
-//         display_name: '',
-//         display_logo: '',
-//         merchant_id: '',
-//         loading: false,
-//         error: null, // fallback instead of showing error
-//       });
-
-//       console.log('🔄 Showing fallback due to error/timeout');
-//     }
-//   };
-
-//   fetchMerchantInfo();
-// }, [scanId]);
-
-  // Function to fetch merchant display information
   const fetchMerchantDisplayInfo = async (merchantId) => {
     if (!merchantId) {
       console.log('🚫 No merchantId provided to fetchMerchantDisplayInfo');
@@ -1187,27 +1096,59 @@ const [formData, setFormData] = useState({
 
       console.log('📊 GET API Response result:', result);
 
+      // if (response.ok && (result.status === true || result.success === true)) {
+      //   if (result.data) {
+      //     const { display_name, display_logo } = result.data;
+
+      //     if (display_name) {
+      //       console.log('✅ Setting merchant name:', display_name);
+      //       setMerchantName(display_name);
+      //     }
+
+      //     if (display_logo) {
+      //       console.log('✅ Setting merchant logo:', display_logo);
+      //       setMerchantLogo(display_logo);
+      //     }
+
+      //     setDebugInfo('Existing data loaded successfully');
+      //   } else {
+      //     setDebugInfo('No existing data found');
+      //   }
+      // } else {
+      //   setDebugInfo('No existing data found or API error');
+      // }
+
+
+
       if (response.ok && (result.status === true || result.success === true)) {
-        if (result.data) {
-          const { display_name, display_logo } = result.data;
+  if (result.data) {
+    const { display_name, display_logo } = result.data;
 
-          if (display_name) {
-            console.log('✅ Setting merchant name:', display_name);
-            setMerchantName(display_name);
-          }
+    if (display_name) {
+      console.log('✅ Setting merchant name:', display_name);
+      setMerchantName(display_name);
+    }
 
-          if (display_logo) {
-            console.log('✅ Setting merchant logo:', display_logo);
-            setMerchantLogo(display_logo);
-          }
+    if (display_logo) {
+      // 🔒 Force HTTPS
+      const safeLogo = display_logo.replace(/^http:\/\//i, "https://");
+      console.log('✅ Setting merchant logo:', safeLogo);
+      setMerchantLogo(safeLogo);
+    }
 
-          setDebugInfo('Existing data loaded successfully');
-        } else {
-          setDebugInfo('No existing data found');
-        }
-      } else {
-        setDebugInfo('No existing data found or API error');
-      }
+    setDebugInfo('Existing data loaded successfully');
+  } else {
+    setDebugInfo('No existing data found');
+  }
+} else {
+  setDebugInfo('No existing data found or API error');
+}
+
+
+
+
+
+
     } catch (error) {
       console.error('❌ Error fetching merchant display info:', error);
       setDebugInfo(`Error fetching data: ${error.message}`);
@@ -2084,15 +2025,15 @@ const startBackSideDetection = async () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-700 to-black p-4 sm:p-4">
       <div className="container mx-auto max-w-4xl">
-        {/* Debug info (only shows in development) */}
-        {/* <DebugAuth /> */}
-        
+        {/* Debug info (only shows in development) */}        
         <div className="flex items-center justify-center bg-white p-2 sm:p-4 rounded-md mb-4 sm:mb-8 shadow">
           {merchantLogo && (
             <img
+              // width={50}
+              // height={50}
               src={merchantLogo}
               alt="Merchant Logo"
-              className="h-15 w-15 object-contain mr-3"
+              className=" h-15 w-15 object-contain mr-3"
             />
           )}
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
