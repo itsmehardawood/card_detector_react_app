@@ -595,7 +595,6 @@
 //           }
 //             setDetectionActive(false); // ADD THIS LINE!
 
-
 //           // Reset attempt count on successful validation
 //           setAttemptCount(0);
 //           setCurrentOperation("");
@@ -736,7 +735,6 @@
 //   //   });
 //   // };
 
-
 // const startBackSideDetection = async () => {
 //   if (maxAttemptsReached) return;
 
@@ -781,7 +779,6 @@
 //     }
 //   });
 // };
-
 
 //   const resetApplication = () => {
 //     stopRequestedRef.current = true;
@@ -967,7 +964,6 @@
 
 
 
-
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 
@@ -995,11 +991,10 @@ const CardDetectionApp = () => {
   const [authData, setAuthData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
-  
- const [Merchant, setMerchant] = useState(null);
-  const [merchantName, setMerchantName] = useState(null);
-const [merchantLogo, setMerchantLogo] = useState(null);
 
+  const [Merchant, setMerchant] = useState(null);
+  const [merchantName, setMerchantName] = useState(null);
+  const [merchantLogo, setMerchantLogo] = useState(null);
 
   // Existing state management
   const [currentPhase, setCurrentPhase] = useState("idle");
@@ -1009,7 +1004,6 @@ const [merchantLogo, setMerchantLogo] = useState(null);
   const [countdown, setCountdown] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("");
-  
 
   // Attempt tracking state
   const [attemptCount, setAttemptCount] = useState(0);
@@ -1024,10 +1018,10 @@ const [merchantLogo, setMerchantLogo] = useState(null);
     movementMessage: "",
     validationComplete: false,
   });
-const [formData, setFormData] = useState({
-  displayName: '',
-  logo: null,
-}); 
+  const [formData, setFormData] = useState({
+    displayName: "",
+    logo: null,
+  });
   // Updated frontScanState to include bankLogoDetected
   const [frontScanState, setFrontScanState] = useState({
     framesBuffered: 0,
@@ -1036,16 +1030,13 @@ const [formData, setFormData] = useState({
     canProceedToBack: false,
   });
 
-  const [merchantInfo, setMerchantInfo] = useState(
-    {
-      display_name: '',
-      display_logo: '',
-      merchant_id: '',
-      loading: false,
-      error: null
-    }
-  );
-
+  const [merchantInfo, setMerchantInfo] = useState({
+    display_name: "",
+    display_logo: "",
+    merchant_id: "",
+    loading: false,
+    error: null,
+  });
 
   // Refs
   const videoRef = useRef(null);
@@ -1058,34 +1049,36 @@ const [formData, setFormData] = useState({
 
   const fetchMerchantDisplayInfo = async (merchantId) => {
     if (!merchantId) {
-      console.log('🚫 No merchantId provided to fetchMerchantDisplayInfo');
+      console.log("🚫 No merchantId provided to fetchMerchantDisplayInfo");
       return;
     }
-       
+
     try {
-      console.log('🔍 Fetching merchant display info for:', merchantId);
-      setDebugInfo('Fetching existing display info...');
+      console.log("🔍 Fetching merchant display info for:", merchantId);
+      setDebugInfo("Fetching existing display info...");
 
       const response = await fetch(
-        `https://admin.cardnest.io/api/getmerchantDisplayInfo?merchantId=${encodeURIComponent(merchantId)}`,
+        `https://admin.cardnest.io/api/getmerchantDisplayInfo?merchantId=${encodeURIComponent(
+          merchantId
+        )}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
 
-      console.log('📡 GET API Response status:', response.status);
+      console.log("📡 GET API Response status:", response.status);
 
       let result;
-      const contentType = response.headers.get('content-type');
+      const contentType = response.headers.get("content-type");
 
-      if (contentType && contentType.includes('application/json')) {
+      if (contentType && contentType.includes("application/json")) {
         result = await response.json();
       } else {
         const textResult = await response.text();
-        console.log('Non-JSON response:', textResult);
+        console.log("Non-JSON response:", textResult);
 
         try {
           result = JSON.parse(textResult);
@@ -1094,67 +1087,35 @@ const [formData, setFormData] = useState({
         }
       }
 
-      console.log('📊 GET API Response result:', result);
+      console.log("📊 GET API Response result:", result);
+
+      // new version to make sure https
 
       if (response.ok && (result.status === true || result.success === true)) {
         if (result.data) {
           const { display_name, display_logo } = result.data;
 
           if (display_name) {
-            console.log('✅ Setting merchant name:', display_name);
+            console.log("✅ Setting merchant name:", display_name);
             setMerchantName(display_name);
           }
 
           if (display_logo) {
-            console.log('✅ Setting merchant logo:', display_logo);
-            setMerchantLogo(display_logo);
+            // 🔒 Force HTTPS
+            const safeLogo = display_logo.replace(/^http:\/\//i, "https://");
+            console.log("✅ Setting merchant logo:", safeLogo);
+            setMerchantLogo(safeLogo);
           }
 
-          setDebugInfo('Existing data loaded successfully');
+          setDebugInfo("Existing data loaded successfully");
         } else {
-          setDebugInfo('No existing data found');
+          setDebugInfo("No existing data found");
         }
       } else {
-        setDebugInfo('No existing data found or API error');
+        setDebugInfo("No existing data found or API error");
       }
-
-
-
-
-
-      // new
-
-//       if (response.ok && (result.status === true || result.success === true)) {
-//   if (result.data) {
-//     const { display_name, display_logo } = result.data;
-
-//     if (display_name) {
-//       console.log('✅ Setting merchant name:', display_name);
-//       setMerchantName(display_name);
-//     }
-
-//     if (display_logo) {
-//       // 🔒 Force HTTPS
-//       const safeLogo = display_logo.replace(/^http:\/\//i, "https://");
-//       console.log('✅ Setting merchant logo:', safeLogo);
-//       setMerchantLogo(safeLogo);
-//     }
-
-//     setDebugInfo('Existing data loaded successfully');
-//   } else {
-//     setDebugInfo('No existing data found');
-//   }
-// } else {
-//   setDebugInfo('No existing data found or API error');
-// }
-
-
-
-
-
-
     } catch (error) {
-      console.error('❌ Error fetching merchant display info:', error);
+      console.error("❌ Error fetching merchant display info:", error);
       setDebugInfo(`Error fetching data: ${error.message}`);
     }
   };
@@ -1162,12 +1123,10 @@ const [formData, setFormData] = useState({
   // Call fetchMerchantDisplayInfo when Merchant state is updated
   useEffect(() => {
     if (Merchant) {
-      console.log('� Merchant ID available, fetching display info:', Merchant);
+      console.log("� Merchant ID available, fetching display info:", Merchant);
       fetchMerchantDisplayInfo(Merchant);
     }
-  }, [Merchant])
-
-
+  }, [Merchant]);
 
   // Helper function to handle detection failures with attempt tracking
   const handleDetectionFailure = (message, operation) => {
@@ -1276,7 +1235,10 @@ const [formData, setFormData] = useState({
 
             // Set merchant from session data if not already set from URL
             if (sessionData.merchantId) {
-              console.log("🏪 Setting merchant ID from session:", sessionData.merchantId);
+              console.log(
+                "🏪 Setting merchant ID from session:",
+                sessionData.merchantId
+              );
               setMerchant(sessionData.merchantId);
             }
 
@@ -1321,29 +1283,30 @@ const [formData, setFormData] = useState({
         return;
       }
 
-        // Method 3: Demo mode (development only)
-        if (process.env.NODE_ENV === "development" || demo === "true") {
-          console.log("🧪 Using development/demo auth data");
-          const demoMerchantId = "G5536942984B2978";
-          const demoAuthObj = {
-            merchantId: demoMerchantId,
-            authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU2MzY1NTU4LCJleHAiOjE3NTYzNjkxNTgsIm5iZiI6MTc1NjM2NTU1OCwianRpIjoiNXZ3WlRTUndmbnowYjNzSyIsInN1YiI6Ikc1NTM2OTQyOTg0QjI5NzgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjNhYTM0NDEwLTM4Y2UtNGNhNC1iZjg4LTNhMmVmMzNhN2YyZSIsIm1lcmNoYW50X2lkIjoiRzU1MzY5NDI5ODRCMjk3OCIsImVuY3J5cHRpb25fa2V5IjoiN3czdklOcDFDcVhOME5nNyIsImZlYXR1cmVzIjpudWxsfQ.4ynheHJuGaWKQM3Ares8IJWPxs7Rtz89UjhwTe7HDbs",
-            timestamp: Date.now(),
-            source: "development_demo",
-          };
+      // Method 3: Demo mode (development only)
+      if (process.env.NODE_ENV === "development" || demo === "true") {
+        console.log("🧪 Using development/demo auth data");
+        const demoMerchantId = "G5536942984B2978";
+        const demoAuthObj = {
+          merchantId: demoMerchantId,
+          authToken:
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU2MzY1NTU4LCJleHAiOjE3NTYzNjkxNTgsIm5iZiI6MTc1NjM2NTU1OCwianRpIjoiNXZ3WlRTUndmbnowYjNzSyIsInN1YiI6Ikc1NTM2OTQyOTg0QjI5NzgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjNhYTM0NDEwLTM4Y2UtNGNhNC1iZjg4LTNhMmVmMzNhN2YyZSIsIm1lcmNoYW50X2lkIjoiRzU1MzY5NDI5ODRCMjk3OCIsImVuY3J5cHRpb25fa2V5IjoiN3czdklOcDFDcVhOME5nNyIsImZlYXR1cmVzIjpudWxsfQ.4ynheHJuGaWKQM3Ares8IJWPxs7Rtz89UjhwTe7HDbs",
+          timestamp: Date.now(),
+          source: "development_demo",
+        };
 
-          setAuthData(demoAuthObj);
-          window.__WEBVIEW_AUTH__ = demoAuthObj;
-          setAuthLoading(false);
-          
-          // Set demo merchant ID if not already set from URL
-          if (!merchantId) {
-            console.log("🏪 Setting demo merchant ID:", demoMerchantId);
-            setMerchant(demoMerchantId);
-          }
-          
-          return;
-        }      // No auth data found
+        setAuthData(demoAuthObj);
+        window.__WEBVIEW_AUTH__ = demoAuthObj;
+        setAuthLoading(false);
+
+        // Set demo merchant ID if not already set from URL
+        if (!merchantId) {
+          console.log("🏪 Setting demo merchant ID:", demoMerchantId);
+          setMerchant(demoMerchantId);
+        }
+
+        return;
+      } // No auth data found
       console.error("❌ No authentication data found");
       console.error("Available URL params:", Array.from(urlParams.entries()));
       setAuthError("No authentication data received from Android app");
@@ -1677,7 +1640,7 @@ const [formData, setFormData] = useState({
           }
 
           setIsProcessing(false);
-            setDetectionActive(false); // ADD THIS LINE!
+          setDetectionActive(false); // ADD THIS LINE!
 
           // Reset attempt count on successful validation
           setAttemptCount(0);
@@ -1717,8 +1680,7 @@ const [formData, setFormData] = useState({
           if (validationIntervalRef.current) {
             clearInterval(validationIntervalRef.current);
           }
-            setDetectionActive(false); // ADD THIS LINE!
-
+          setDetectionActive(false); // ADD THIS LINE!
 
           // Reset attempt count on successful validation
           setAttemptCount(0);
@@ -1860,52 +1822,60 @@ const [formData, setFormData] = useState({
   //   });
   // };
 
+  const startBackSideDetection = async () => {
+    if (maxAttemptsReached) return;
 
-const startBackSideDetection = async () => {
-  if (maxAttemptsReached) return;
+    setCurrentPhase("back-countdown");
+    setErrorMessage("");
 
-  setCurrentPhase("back-countdown");
-  setErrorMessage("");
+    startCountdown(async () => {
+      if (stopRequestedRef.current) return;
 
-  startCountdown(async () => {
-    if (stopRequestedRef.current) return;
+      setCurrentPhase("back");
+      setDetectionActive(true);
+      stopRequestedRef.current = false;
 
-    setCurrentPhase("back");
-    setDetectionActive(true);
-    stopRequestedRef.current = false;
+      startDetectionTimeout("Back side");
 
-    startDetectionTimeout("Back side");
+      try {
+        const finalResult = await captureAndSendFrames("back");
 
-    try {
-      const finalResult = await captureAndSendFrames("back");
+        if (!stopRequestedRef.current) {
+          clearDetectionTimeout();
+          setDetectionActive(false);
 
-      if (!stopRequestedRef.current) {
-        clearDetectionTimeout();
+          console.log("🔍 Checking final result:", finalResult);
+
+          if (
+            finalResult?.status === "success" &&
+            finalResult?.complete_scan === true
+          ) {
+            console.log(
+              "✅ Valid back-side scan received, transitioning to 'results'"
+            );
+            setFinalOcrResults(finalResult);
+            setCurrentPhase("results");
+            setAttemptCount(0);
+            setCurrentOperation("");
+          } else {
+            console.log(
+              "⚠️ Scan result didn't meet success + complete_scan criteria"
+            );
+            handleDetectionFailure("Back scan incomplete or failed.", "back");
+          }
+        }
+      } catch (error) {
+        console.error("Back side detection failed:", error);
         setDetectionActive(false);
-
-        console.log("🔍 Checking final result:", finalResult);
-
-        if (finalResult?.status === "success" && finalResult?.complete_scan === true) {
-          console.log("✅ Valid back-side scan received, transitioning to 'results'");
-          setFinalOcrResults(finalResult);
-          setCurrentPhase("results");
-          setAttemptCount(0);
-          setCurrentOperation("");
-        } else {
-          console.log("⚠️ Scan result didn't meet success + complete_scan criteria");
-          handleDetectionFailure("Back scan incomplete or failed.", "back");
+        if (!stopRequestedRef.current) {
+          handleDetectionFailure(
+            `Back side detection failed: ${error.message}`,
+            "back"
+          );
         }
       }
-    } catch (error) {
-      console.error("Back side detection failed:", error);
-      setDetectionActive(false);
-      if (!stopRequestedRef.current) {
-        handleDetectionFailure(`Back side detection failed: ${error.message}`, "back");
-      }
-    }
-  });
-};
-
+    });
+  };
 
   const resetApplication = () => {
     stopRequestedRef.current = true;
@@ -2029,7 +1999,7 @@ const startBackSideDetection = async () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-700 to-black p-4 sm:p-4">
       <div className="container mx-auto max-w-4xl">
-        {/* Debug info (only shows in development) */}        
+        {/* Debug info (only shows in development) */}
         <div className="flex items-center justify-center bg-white p-2 sm:p-4 rounded-md mb-4 sm:mb-8 shadow">
           {merchantLogo && (
             <img
@@ -2044,7 +2014,6 @@ const startBackSideDetection = async () => {
             {merchantName || "Card Security Scan"}
           </h1>
         </div>
-
 
         <CameraView
           videoRef={videoRef}
