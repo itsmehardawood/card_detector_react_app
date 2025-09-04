@@ -62,6 +62,17 @@ export const useDetection = (
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
               
+              // 🎯 HIGHEST PRIORITY: Check for status success (regardless of other conditions)
+              if (apiResponse.status === "success") {
+                console.log('🎯 SUCCESS STATUS received! Stopping detection...');
+                console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
+                isComplete = true;
+                cleanup();
+                setCurrentPhase('results');
+                resolve(apiResponse);
+                return;
+              }
+              
               // CRITICAL FIX: Check for final encrypted response first
               if (apiResponse.encrypted_card_data && apiResponse.status) {
                 console.log('🎯 Final encrypted response received! Stopping detection...');
@@ -294,7 +305,7 @@ const captureAndSendFrames = async (phase) => {
   
   let lastApiResponse = null;
   const maxFrames = 40;
-  const requiredBackSideFeatures = 3;
+  const requiredBackSideFeatures = 2;  //replaced it to 2 before it was 3
   
   if (!videoRef.current || videoRef.current.readyState < 2) {
     throw new Error('Video not ready for capture');
@@ -322,7 +333,13 @@ const captureAndSendFrames = async (phase) => {
         // Check if stopped
         if (isComplete || stopRequestedRef.current) return;
         
+        // Double-check before frame capture to prevent race conditions
+        if (isComplete || stopRequestedRef.current) return;
+        
         const frame = await captureFrame(videoRef, canvasRef);
+        
+        // Check again after async frame capture to prevent race conditions
+        if (isComplete || stopRequestedRef.current) return;
         
         if (frame && frame.size > 0) {
           frameNumber++;
@@ -331,7 +348,17 @@ const captureAndSendFrames = async (phase) => {
           try {
             const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
             
-            // 🎯 HIGHEST PRIORITY: Check for final encrypted response with complete_scan
+            // 🎯 HIGHEST PRIORITY: Check for status success (regardless of complete_scan)
+            if (apiResponse.status === "success") {
+              console.log('🎯 SUCCESS STATUS received! Stopping all detection immediately...');
+              console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
+              isComplete = true;
+              cleanup();
+              resolve(apiResponse);
+              return;
+            }
+            
+            // 🎯 SECOND PRIORITY: Check for final encrypted response with complete_scan
             if (apiResponse.status === "success" && apiResponse.complete_scan === true) {
               isComplete = true;
               cleanup();
@@ -499,7 +526,18 @@ const captureAndSendFrames = async (phase) => {
           }
         }
       } catch (error) {
+        // Check if we're completed/stopped - if so, ignore errors and exit gracefully
+        if (isComplete || stopRequestedRef.current) {
+          console.log('🛑 Frame processing stopped due to completion state');
+          return;
+        }
+        
         console.error('Error in frame processing:', error);
+        
+        // Only set processing to false if we're not completed
+        if (!isComplete) {
+          setIsProcessing(false);
+        }
       }
     };
     

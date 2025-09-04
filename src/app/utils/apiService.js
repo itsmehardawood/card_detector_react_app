@@ -10,8 +10,15 @@ export const sendFrameToAPI = async (frameBlob, phase, sessionId, frameNumber) =
   if (!merchantId || !authToken) {
     throw new Error("Missing auth credentials.");
   }
-  const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
-  // :white_check_mark: Create File from Blob for FastAPI UploadFile
+
+
+
+
+// dev server
+    const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
+    // prod server
+
+  // const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
   const file = new File([frameBlob], `${phase}_frame_${frameNumber}.jpg`, {
     type: "image/jpeg",
   });
@@ -25,7 +32,7 @@ export const sendFrameToAPI = async (frameBlob, phase, sessionId, frameNumber) =
     method: "POST",
     body: formData,
     headers: {
-      "auth-token": authToken, // :white_check_mark: FastAPI reads this with Header(...)
+      "auth-token": encodeURIComponent(authToken), // :white_check_mark: URL encode the auth token to handle special characters
       "ngrok-skip-browser-warning": "true", // optional, safe to include
       // :warning: DO NOT include "Content-Type" here
     },

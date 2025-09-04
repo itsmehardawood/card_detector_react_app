@@ -50,6 +50,7 @@ export const captureFrame = (videoRef, canvasRef) => {
   return new Promise((resolve, reject) => {
     try {
       if (!videoRef.current || !canvasRef.current) {
+        console.log('⚠️ Video or canvas reference is null - likely due to component cleanup');
         reject(new Error('Video or canvas reference is null'));
         return;
       }
@@ -59,11 +60,13 @@ export const captureFrame = (videoRef, canvasRef) => {
       
       // Check if video is ready
       if (video.readyState < 2) {
+        console.log('⚠️ Video not ready for capture');
         reject(new Error('Video not ready for capture'));
         return;
       }
       
       if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('⚠️ Video has no dimensions');
         reject(new Error('Video has no dimensions'));
         return;
       }
