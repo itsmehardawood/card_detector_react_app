@@ -274,7 +274,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 70000);
+      }, 45000);
     });
   };
 
@@ -587,7 +587,7 @@ const captureAndSendFrames = async (phase) => {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 70000);
+    }, 40000);
   });
 };
 
