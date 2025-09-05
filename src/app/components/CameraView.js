@@ -152,16 +152,16 @@ const CameraView = ({
             
             {/* Prompt Text during countdown */}
             {showPromptText && promptText && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 mx-4 max-w-md text-center shadow-lg border-2 border-blue-500">
+              <div className="bg-black/90 backdrop-blur-sm rounded-lg p-4 mx-4 max-w-md text-center shadow-lg border-2 border-blue-500">
                 <div className="text-blue-600 text-lg font-semibold mb-2">
-                  📷 Position Your Card
+                   Position Your Card
                 </div>
-                <div className="text-gray-800 text-sm leading-relaxed">
+                <div className="text-gray-500 text-sm leading-relaxed">
                   {promptText}
                 </div>
-                <div className="mt-3 text-xs text-gray-600 animate-pulse">
+                {/* <div className="mt-3 text-xs text-gray-400 animate-pulse">
                   Scanning will begin in {countdown} second{countdown !== 1 ? 's' : ''}...
-                </div>
+                </div> */}
               </div>
             )}
           </div>
