@@ -83,32 +83,8 @@ export const useDetection = (
                 return;
               }
 
-              // Check for validation states first (for validation phase)
-              if (phase === 'validation') {
-                if (apiResponse.message_state === "VALIDATION_FAILED" || 
-                    apiResponse.movement_state === "VALIDATION_FAILED") {
-                  isComplete = true;
-                  cleanup();
-                  const errorMsg = apiResponse.message || 
-                                  apiResponse.movement_message || 
-                                  'Validation failed. Please try again.';
-                  setErrorMessage(errorMsg);
-                  setCurrentPhase('error');
-                  reject(new Error('Validation failed'));
-                  return;
-                }
-
-                if (apiResponse.message_state === "VALIDATION_PASSED" || 
-                    apiResponse.movement_state === "VALIDATION_PASSED") {
-                  isComplete = true;
-                  cleanup();
-                  setCurrentPhase('ready-for-front');
-                  resolve(apiResponse);
-                  return;
-                }
-              }
-
-              // General validation state check for all phases
+            // Check for validation states first (for validation phase)
+            if (phase === 'validation') {
               if (apiResponse.message_state === "VALIDATION_FAILED" || 
                   apiResponse.movement_state === "VALIDATION_FAILED") {
                 isComplete = true;
@@ -121,8 +97,31 @@ export const useDetection = (
                 reject(new Error('Validation failed'));
                 return;
               }
-              
-              lastApiResponse = apiResponse;
+
+              if (apiResponse.message_state === "VALIDATION_PASSED" || 
+                  apiResponse.movement_state === "VALIDATION_PASSED") {
+                isComplete = true;
+                cleanup();
+                setCurrentPhase('ready-for-front');
+                resolve(apiResponse);
+                return;
+              }
+            }
+
+            // General validation state check for all phases - Skip for front/back phases
+            if (phase !== 'front' && phase !== 'back' && 
+                (apiResponse.message_state === "VALIDATION_FAILED" || 
+                 apiResponse.movement_state === "VALIDATION_FAILED")) {
+              isComplete = true;
+              cleanup();
+              const errorMsg = apiResponse.message || 
+                              apiResponse.movement_message || 
+                              'Validation failed. Please try again.';
+              setErrorMessage(errorMsg);
+              setCurrentPhase('error');
+              reject(new Error('Validation failed'));
+              return;
+            }              lastApiResponse = apiResponse;
               setIsProcessing(false);
 
               // Update front scan state for front phase
@@ -403,9 +402,10 @@ const captureAndSendFrames = async (phase) => {
               }
             }
 
-            // General validation state check for all phases
-            if (apiResponse.message_state === "VALIDATION_FAILED" || 
-                apiResponse.movement_state === "VALIDATION_FAILED") {
+            // General validation state check for all phases - Skip for front/back phases
+            if (phase !== 'front' && phase !== 'back' && 
+                (apiResponse.message_state === "VALIDATION_FAILED" || 
+                 apiResponse.movement_state === "VALIDATION_FAILED")) {
               isComplete = true;
               cleanup();
               const errorMsg = apiResponse.message || 

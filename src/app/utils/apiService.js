@@ -1,4 +1,9 @@
-export const sendFrameToAPI = async (frameBlob, phase, sessionId, frameNumber) => {
+export const sendFrameToAPI = async (
+  frameBlob,
+  phase,
+  sessionId,
+  frameNumber
+) => {
   let merchantId, authToken;
   // :white_check_mark: Extract merchantId and authToken from WebView context
   if (window.__WEBVIEW_AUTH__) {
@@ -11,15 +16,13 @@ export const sendFrameToAPI = async (frameBlob, phase, sessionId, frameNumber) =
     throw new Error("Missing auth credentials.");
   }
 
-
   // testing ngrok
-    // const apiUrl = `https://d5b001cd8d5e.ngrok-free.app/detect/${merchantId}`;
+  // const apiUrl = `https://7fa2c26a0353.ngrok-free.app/detect/${merchantId}`;
 
+  // dev server
+  // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
 
-// dev server
-    // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
-    // prod server
-
+  // prod server
   const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
   const file = new File([frameBlob], `${phase}_frame_${frameNumber}.jpg`, {
     type: "image/jpeg",
@@ -40,14 +43,14 @@ export const sendFrameToAPI = async (frameBlob, phase, sessionId, frameNumber) =
     },
   });
   // :white_check_mark: Error handling
- if (!response.ok) {
+  if (!response.ok) {
     const errorText = await response.text();
     console.error(":x: API Error:", errorText);
     throw new Error(`API request failed with status ${response.status}`);
   }
   // :white_check_mark: Parse and return response JSON
   const data = await response.json();
-      console.log("Response of API: ",data);
+  console.log("Response of API: ", data);
 
   return data;
 };

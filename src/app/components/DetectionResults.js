@@ -101,14 +101,16 @@ const DetectionResults = ({ finalOcrResults, onReset }) => {
 
       {/* <JsonResponseViewer data={finalOcrResults} />  */}
 
-      <div className="text-center my-4">
+      {/* <div className="text-center my-4">
         <button
           onClick={onReset}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
         >
           Start New Detection
         </button>
-      </div>
+      </div> */}
+
+      
     </div>
   );
 };

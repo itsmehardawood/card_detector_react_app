@@ -39,19 +39,17 @@ const CardDetectionApp = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("");
 
+  // Prompt text state for positioning guidance
+  const [showPromptText, setShowPromptText] = useState(false);
+  const [promptText, setPromptText] = useState("");
+
   // Attempt tracking state
   const [attemptCount, setAttemptCount] = useState(0);
   const [maxAttemptsReached, setMaxAttemptsReached] = useState(false);
-  const [currentOperation, setCurrentOperation] = useState(""); // 'validation', 'front', 'back'
+  const [currentOperation, setCurrentOperation] = useState(""); // 'front', 'back'
   const [debugInfo, setDebugInfo] = useState("");
   const [existingLogoUrl, setExistingLogoUrl] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
-  const [validationState, setValidationState] = useState({
-    physicalCard: false,
-    movementState: null,
-    movementMessage: "",
-    validationComplete: false,
-  });
   const [formData, setFormData] = useState({
     displayName: "",
     logo: null,
@@ -77,7 +75,6 @@ const CardDetectionApp = () => {
   const canvasRef = useRef(null);
   const capturedFrames = useRef([]);
   const countdownIntervalRef = useRef(null);
-  const validationIntervalRef = useRef(null);
   const stopRequestedRef = useRef(false);
   const detectionTimeoutRef = useRef(null);
 
@@ -171,11 +168,6 @@ const CardDetectionApp = () => {
     if (captureIntervalRef.current) {
       clearInterval(captureIntervalRef.current);
       captureIntervalRef.current = null;
-    }
-
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
-      validationIntervalRef.current = null;
     }
 
     if (countdownIntervalRef.current) {
@@ -320,11 +312,13 @@ const CardDetectionApp = () => {
       // Method 3: Demo mode (development only)
       if (process.env.NODE_ENV === "development" || demo === "true") {
         console.log("🧪 Using development/demo auth data");
-        const demoMerchantId = "G5536942984B2978";
+        const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU2OTg5NDQ3LCJleHAiOjE3NTY5OTMwNDcsIm5iZiI6MTc1Njk4OTQ0NywianRpIjoiZkxMdXg2cjBwMzBZdFRleiIsInN1YiI6Ikc1NTM2OTQyOTg0QjI5NzgiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjhkNTI4NDM1LWY2NDUtNDY3My1hMGZlLTEyYTQ2MDRlYWQzNiIsIm1lcmNoYW50X2lkIjoiRzU1MzY5NDI5ODRCMjk3OCIsImVuY3J5cHRpb25fa2V5IjoiN3czdklOcDFDcVhOME5nNyIsImZlYXR1cmVzIjpudWxsfQ.3orqsajSQf2QkcUHvAueMRw0vwui-AijN2kXsErfUbk",
-                  timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MDc1OTA0LCJleHAiOjE3NTcwNzk1MDQsIm5iZiI6MTc1NzA3NTkwNCwianRpIjoiYnprZmlKZ0p2b2tnaUlDNiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImJiYTcwMmJlLWRhNDUtNGQwNi04ZjJjLThkNWExZGI0YmM1NyIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.vO6V9wBKVaT6Imf8dbrrIneEDFuTA56GGIzCDKvvAeQ",          
+          
+          
+          timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -399,48 +393,11 @@ const CardDetectionApp = () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
-
-      if (validationIntervalRef.current) {
-        clearInterval(validationIntervalRef.current);
-      }
     };
   }, [authData, authLoading]);
 
-  // Test API Connection function
-  const testAPIConnection = async () => {
-    if (!authData) return;
 
-    try {
-      const { merchantId, authToken } = authData;
 
-      // Skip API test for demo mode to avoid 422 errors
-      if (authData.source === "development_demo") {
-        console.log("🧪 Skipping API test for demo mode");
-        return;
-      }
-
-      const testUrl = `https://cardapp.hopto.org/detect/${merchantId}/${authToken}`;
-
-      const formData = new FormData();
-      formData.append("test", "connection");
-
-      const response = await fetch(testUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      console.log("✅ API Connection Test:", response.status);
-    } catch (error) {
-      console.error("❌ API Connection Test Failed:", error);
-    }
-  };
-
-  // Call API test when auth data is ready
-  useEffect(() => {
-    if (authData) {
-      testAPIConnection();
-    }
-  }, [authData]);
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -518,32 +475,22 @@ const CardDetectionApp = () => {
       captureIntervalRef.current = null;
     }
 
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
-      validationIntervalRef.current = null;
-    }
-
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
 
-    // Reset states
+    // Reset states immediately
     setDetectionActive(false);
     setIsProcessing(false);
     setCountdown(0);
+    
+    // Hide prompt text when stopping
+    setShowPromptText(false);
 
     // Return to appropriate phase based on current state
-    if (currentPhase === "validation") {
+    if (currentPhase === "front-countdown" || currentPhase === "front") {
       setCurrentPhase("idle");
-      setValidationState({
-        physicalCard: false,
-        movementState: null,
-        movementMessage: "",
-        validationComplete: false,
-      });
-    } else if (currentPhase === "front-countdown" || currentPhase === "front") {
-      setCurrentPhase("ready-for-front");
       setFrontScanState({
         framesBuffered: 0,
         chipDetected: false,
@@ -552,6 +499,8 @@ const CardDetectionApp = () => {
       });
     } else if (currentPhase === "back-countdown" || currentPhase === "back") {
       setCurrentPhase("ready-for-back");
+    } else {
+      setCurrentPhase("idle");
     }
   };
 
@@ -574,196 +523,19 @@ const CardDetectionApp = () => {
     }, 1000);
   };
 
-  // Card validation process with timeout handling
-  const startCardValidation = async () => {
+  // Start card scanning directly with front side detection
+  const startCardScanning = async () => {
     if (maxAttemptsReached) return;
 
-    setCurrentPhase("validation");
-    setDetectionActive(true); // THIS IS CRITICAL!
-    setErrorMessage("");
-    stopRequestedRef.current = false;
-    setValidationState({
-      physicalCard: false,
-      movementState: null,
-      movementMessage: "Starting validation...",
-      validationComplete: false,
-    });
-
+    // Initialize session
     const currentSessionId = `session_${Date.now()}`;
     setSessionId(currentSessionId);
 
-    let frameNumber = 0;
-    let validationComplete = false;
-    const maxValidationTime = 27000;
-    const startTime = Date.now();
-
-    // Start detection timeout
-    startDetectionTimeout("Validation");
-
-    if (!videoRef.current || videoRef.current.readyState < 2) {
-      handleDetectionFailure("Video not ready for capture", "validation");
-      return;
-    }
-
-    const processValidationFrame = async () => {
-      try {
-        if (
-          stopRequestedRef.current ||
-          validationComplete ||
-          Date.now() - startTime > maxValidationTime
-        ) {
-          return;
-        }
-
-        // Add null checks before calling captureFrame
-        if (!videoRef.current || !canvasRef.current) {
-          console.error(
-            "❌ Video or canvas reference is null in processValidationFrame"
-          );
-          return;
-        }
-
-        // Check if video is ready
-        if (videoRef.current.readyState < 2) {
-          console.log("⏳ Video not ready for validation, skipping frame...");
-          return;
-        }
-
-        const frame = await captureFrame(videoRef, canvasRef);
-        if (!frame || frame.size === 0) {
-          return;
-        }
-
-        frameNumber++;
-        setIsProcessing(true);
-
-        const apiResponse = await sendFrameToAPI(
-          frame,
-          "validation",
-          currentSessionId,
-          frameNumber
-        );
-
-        if (stopRequestedRef.current) {
-          setIsProcessing(false);
-          return;
-        }
-
-        // FIXED: Check for validation failures in both message_state AND movement_state
-        if (
-          apiResponse.message_state === "VALIDATION_FAILED" ||
-          apiResponse.movement_state === "VALIDATION_FAILED"
-        ) {
-          validationComplete = true;
-          clearDetectionTimeout();
-
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-
-          setIsProcessing(false);
-
-          // Use appropriate error message based on which field contains the failure
-          const errorMsg =
-            apiResponse.message ||
-            (apiResponse.movement_state === "VALIDATION_FAILED"
-              ? "Card validation failed. Please ensure you have a physical card and try again."
-              : "Validation failed. Please try again.");
-
-          handleDetectionFailure(errorMsg, "validation");
-          return;
-        }
-
-        // FIXED: Check for validation success in both fields
-        if (
-          apiResponse.message_state === "VALIDATION_PASSED" ||
-          apiResponse.movement_state === "VALIDATION_PASSED"
-        ) {
-          validationComplete = true;
-          clearDetectionTimeout();
-
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-
-          setIsProcessing(false);
-          setDetectionActive(false); // ADD THIS LINE!
-
-          // Reset attempt count on successful validation
-          setAttemptCount(0);
-          setCurrentOperation("");
-
-          setTimeout(() => {
-            if (!stopRequestedRef.current) {
-              setCurrentPhase("ready-for-front");
-            }
-          }, 2000);
-          return;
-        }
-
-        // Update validation state - show failure message immediately if movement_state indicates failure
-        const newValidationState = {
-          physicalCard: apiResponse.physical_card || false,
-          movementState: apiResponse.movement_state || null,
-          movementMessage:
-            apiResponse.movement_message ||
-            (apiResponse.movement_state === "VALIDATION_FAILED"
-              ? "Validation Failed"
-              : ""),
-          validationComplete: apiResponse.physical_card || false,
-        };
-
-        setValidationState(newValidationState);
-        setIsProcessing(false);
-
-        // Keep the existing logic for backward compatibility
-        if (
-          newValidationState.validationComplete &&
-          !stopRequestedRef.current
-        ) {
-          validationComplete = true;
-          clearDetectionTimeout();
-
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-          setDetectionActive(false); // ADD THIS LINE!
-
-          // Reset attempt count on successful validation
-          setAttemptCount(0);
-          setCurrentOperation("");
-
-          setTimeout(() => {
-            if (!stopRequestedRef.current) {
-              setCurrentPhase("ready-for-front");
-            }
-          }, 2000);
-        }
-      } catch (error) {
-        console.error("Validation frame processing error:", error);
-        setIsProcessing(false);
-      }
-    };
-
-    processValidationFrame();
-    validationIntervalRef.current = setInterval(processValidationFrame, 1500);
-
-    setTimeout(() => {
-      if (!validationComplete && !stopRequestedRef.current) {
-        if (validationIntervalRef.current) {
-          clearInterval(validationIntervalRef.current);
-        }
-        handleDetectionFailure(
-          "Our intelligence system requires you to try again since the card scan failed",
-          "validation"
-        );
-      }
-    }, maxValidationTime);
-  };
-
-  const startFrontSideDetection = async () => {
-    if (maxAttemptsReached) return;
-
+    // Reset states and start front side detection
+    setErrorMessage("");
+    setAttemptCount(0);
+    setCurrentOperation("");
+    
     setFrontScanState({
       framesBuffered: 0,
       chipDetected: false,
@@ -771,13 +543,20 @@ const CardDetectionApp = () => {
       canProceedToBack: false,
     });
 
+    // Show prompt text for front side positioning
+    setPromptText("Position your card's front side in the camera square frame showing the chip and bank logo clearly");
+    setShowPromptText(true);
+
+    // Go directly to front side detection
     setCurrentPhase("front-countdown");
-    setErrorMessage("");
 
     startCountdown(async () => {
       if (stopRequestedRef.current) return;
 
       setCurrentPhase("front");
+      
+      // Hide prompt text when detection starts
+      setShowPromptText(false);
       setDetectionActive(true);
       stopRequestedRef.current = false;
 
@@ -808,69 +587,66 @@ const CardDetectionApp = () => {
     });
   };
 
-  // const startBackSideDetection = async () => {
-  //   if (maxAttemptsReached) return;
+  const startFrontSideDetection = async () => {
+    if (maxAttemptsReached) return;
 
-  //   setCurrentPhase("back-countdown");
-  //   setErrorMessage("");
+    setFrontScanState({
+      framesBuffered: 0,
+      chipDetected: false,
+      bankLogoDetected: false,
+      canProceedToBack: false,
+    });
 
-  //   startCountdown(async () => {
-  //     if (stopRequestedRef.current) return;
+    // Show prompt text for front side positioning
+    setPromptText("Position your card's front side in the camera square frame showing the chip and bank logo clearly");
+    setShowPromptText(true);
 
-  //     setCurrentPhase("back");
-  //     setDetectionActive(true);
-  //     stopRequestedRef.current = false;
+    setCurrentPhase("front-countdown");
+    setErrorMessage("");
 
-  //     // Start detection timeout
-  //     startDetectionTimeout("Back side");
+    startCountdown(async () => {
+      if (stopRequestedRef.current) return;
 
-  //     try {
-  //       const finalResult = await captureAndSendFrames("back");
+      setCurrentPhase("front");
+      
+      // Hide prompt text when detection starts
+      setShowPromptText(false);
+      setDetectionActive(true);
+      stopRequestedRef.current = false;
 
-  //       if (!stopRequestedRef.current) {
-  //         clearDetectionTimeout();
-  //         setDetectionActive(false);
+      // Start detection timeout
+      startDetectionTimeout("Front side");
 
-  //         console.log("🔍 Checking final result:", finalResult);
+      try {
+        await captureAndSendFramesFront("front");
 
-  //         if (finalResult.encrypted_card_data && finalResult.status) {
-  //           console.log(
-  //             "🎯 Final encrypted response detected - Setting phase to final_response"
-  //           );
-  //           console.log(
-  //             `Status: ${finalResult.status}, Score: ${finalResult.score}`
-  //           );
-  //           setFinalOcrResults(finalResult);
-  //           setCurrentPhase("final_response");
-  //         } else if (finalResult.final_ocr) {
-  //           console.log("📋 Regular OCR results - Setting phase to results");
-  //           setFinalOcrResults(finalResult);
-  //           setCurrentPhase("results");
-  //         } else {
-  //           console.log("⚠️ No final OCR or encrypted data found");
-  //           setFinalOcrResults(finalResult);
-  //           setCurrentPhase("results");
-  //         }
-
-  //         // Reset attempt count on successful completion
-  //         setAttemptCount(0);
-  //         setCurrentOperation("");
-  //       }
-  //     } catch (error) {
-  //       console.error("Back side detection failed:", error);
-  //       setDetectionActive(false);
-  //       if (!stopRequestedRef.current) {
-  //         handleDetectionFailure(
-  //           `Back side detection failed: ${error.message}`,
-  //           "back"
-  //         );
-  //       }
-  //     }
-  //   });
-  // };
+        if (!stopRequestedRef.current) {
+          clearDetectionTimeout();
+          setDetectionActive(false);
+          // Reset attempt count on successful front scan
+          setAttemptCount(0);
+          setCurrentOperation("");
+          setCurrentPhase("ready-for-back");
+        }
+      } catch (error) {
+        console.error("Front side detection failed:", error);
+        setDetectionActive(false);
+        if (!stopRequestedRef.current) {
+          handleDetectionFailure(
+            `Front side detection failed: ${error.message}`,
+            "front"
+          );
+        }
+      }
+    });
+  };
 
   const startBackSideDetection = async () => {
     if (maxAttemptsReached) return;
+
+    // Show prompt text for back side positioning
+    setPromptText("Position your card's back side in the camera square frame showing the magnetic strip and signature area clearly");
+    setShowPromptText(true);
 
     setCurrentPhase("back-countdown");
     setErrorMessage("");
@@ -879,6 +655,9 @@ const CardDetectionApp = () => {
       if (stopRequestedRef.current) return;
 
       setCurrentPhase("back");
+      
+      // Hide prompt text when detection starts
+      setShowPromptText(false);
       setDetectionActive(true);
       stopRequestedRef.current = false;
 
@@ -935,18 +714,16 @@ const CardDetectionApp = () => {
     setCountdown(0);
     setErrorMessage("");
     setSessionId("");
+    
+    // Reset prompt text state
+    setShowPromptText(false);
+    setPromptText("");
 
     // Reset attempt tracking completely - this is for "Start New Session"
     setAttemptCount(0);
     setMaxAttemptsReached(false);
     setCurrentOperation("");
 
-    setValidationState({
-      physicalCard: false,
-      movementState: null,
-      movementMessage: "",
-      validationComplete: false,
-    });
     setFrontScanState({
       framesBuffered: 0,
       chipDetected: false,
@@ -960,9 +737,6 @@ const CardDetectionApp = () => {
     }
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
-    }
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
     }
 
     stopRequestedRef.current = false;
@@ -978,18 +752,14 @@ const CardDetectionApp = () => {
     setIsProcessing(false);
     setCountdown(0);
     setErrorMessage("");
+    
+    // Reset prompt text state
+    setShowPromptText(false);
+    setPromptText("");
 
     // Return to the appropriate phase based on what operation failed
-    if (currentOperation === "validation") {
+    if (currentOperation === "front") {
       setCurrentPhase("idle");
-      setValidationState({
-        physicalCard: false,
-        movementState: null,
-        movementMessage: "",
-        validationComplete: false,
-      });
-    } else if (currentOperation === "front") {
-      setCurrentPhase("ready-for-front");
       setFrontScanState({
         framesBuffered: 0,
         chipDetected: false,
@@ -1010,9 +780,6 @@ const CardDetectionApp = () => {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
-    }
 
     stopRequestedRef.current = false;
   };
@@ -1027,20 +794,6 @@ const CardDetectionApp = () => {
     setMaxAttemptsReached(false);
     setCurrentOperation("");
     stopRequestedRef.current = false;
-  };
-
-  // Debug component for testing (only shows in development)
-  const DebugAuth = () => {
-    if (!authData || process.env.NODE_ENV === "production") return null;
-
-    return (
-      <div className="fixed top-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded text-xs z-50">
-        <div>Merchant: {authData.merchantId}</div>
-        <div>Token: {authData.authToken.substring(0, 8)}...</div>
-        <div>Source: {authData.source}</div>
-        <div>Time: {new Date(authData.timestamp).toLocaleTimeString()}</div>
-      </div>
-    );
   };
 
   return (
@@ -1068,21 +821,21 @@ const CardDetectionApp = () => {
           currentPhase={currentPhase}
           countdown={countdown}
           detectionActive={detectionActive}
-          validationState={validationState}
           frontScanState={frontScanState}
           isProcessing={isProcessing}
+          showPromptText={showPromptText}
+          promptText={promptText}
         />
 
         <ControlPanel
           currentPhase={currentPhase}
-          onStartValidation={startCardValidation}
+          onStartValidation={startCardScanning}
           onStartFrontScan={startFrontSideDetection}
           onStartBackScan={startBackSideDetection}
           onStop={stopDetection}
           onReset={resetApplication}
           onTryAgain={handleTryAgain}
           onStartOver={handleStartOver}
-          validationState={validationState}
           frontScanState={frontScanState}
           countdown={countdown}
           errorMessage={errorMessage}
@@ -1097,7 +850,6 @@ const CardDetectionApp = () => {
         <StatusInformation
           currentPhase={currentPhase}
           sessionId={sessionId}
-          validationState={validationState}
           frontScanState={frontScanState}
           detectionActive={detectionActive}
         />

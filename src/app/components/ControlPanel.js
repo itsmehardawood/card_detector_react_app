@@ -11,7 +11,6 @@ const ControlPanel = ({
   onReset,
   onTryAgain,
   onStartOver,
-  validationState,
   frontScanState,
   countdown,
   errorMessage,
@@ -129,7 +128,7 @@ const ControlPanel = ({
     <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
       <div className="text-center space-y-4">
         
-        {/* Phase: idle - Start Validation */}
+        {/* Phase: idle - Start Card Scanning (Direct to Front) */}
         {currentPhase === 'idle' && (
           <div>
             <button
@@ -137,10 +136,10 @@ const ControlPanel = ({
               disabled={isActive || maxAttemptsReached}
               className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
             >
-              {isActive ? 'Processing...' : 'Start Scanning'}
+              {isActive ? 'Processing...' : 'Start Card Scanning'}
             </button>
 
-            {/* Show alternative payment methods when only one attempt left during validation */}
+            {/* Show alternative payment methods when only one attempt left */}
             {isLastAttempt && (
                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
   <p className="text-sm text-blue-800 mb-4 font-medium">
@@ -168,46 +167,6 @@ const ControlPanel = ({
   </div>
 </div>  
             )}
-          </div>
-        )}
-
-        {/* Phase: validation */}
-        {currentPhase === 'validation' && (
-          <div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 min-h-[40px]">
-              {isProcessing ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
-                  <span className="text-blue-600 text-sm">Processing...</span>
-                </div>
-              ) : (
-                // This empty span ensures space remains but no content shows
-                <span className="invisible">Processing...</span>
-              )}
-            </div>
-
-            <button
-              onClick={onStop}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-            >
-              Stop Card Scan
-            </button>
-          </div>
-        )}
-
-        {/* Phase: ready-for-front */}
-        {currentPhase === 'ready-for-front' && (
-          <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
-              Validation Complete
-            </h3>
-            <button
-              onClick={onStartFrontScan}
-              disabled={isActive || maxAttemptsReached}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
-            >
-              {isActive ? 'Scanning Front...' : 'Scan Front Side'}
-            </button>
           </div>
         )}
 

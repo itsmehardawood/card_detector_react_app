@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowBigUp, ArrowBigDown, ArrowBigLeft, ArrowBigRight } from 'lucide-react';
 
 const CameraView = ({
   videoRef,
@@ -7,18 +6,15 @@ const CameraView = ({
   currentPhase,
   countdown,
   detectionActive,
-  validationState,
   frontScanState,
   isProcessing,
+  showPromptText,
+  promptText,
 }) => {
   const getPhaseInstructions = () => {
     switch (currentPhase) {
       case "idle":
         return 'Position your card in camera view showing the frontside, avoid dark place and move the camera closer to the card.';
-      case "validation":
-        return "Follow the instructions, we are validating your card";
-      case "ready-for-front":
-        return 'Position the FRONT side of your card (with chip visible) and click "Scan Front Side"';
       case "front-countdown":
         return `Get ready to scan front side... ${countdown}`;
       case "front":
@@ -40,83 +36,11 @@ const CameraView = ({
     }
   };
 
-  // Check if we should show the scanning animation (excluding validation phase)
+  // Check if we should show the scanning animation
   const showScanningAnimation = detectionActive && (
     currentPhase === 'front' || 
     currentPhase === 'back'
   );
-
-  // Check if we should show validation arrows
-  const showValidationArrows = currentPhase === 'validation' && detectionActive;
-
-  // Get arrow direction based on validation state
-  const getArrowDirection = () => {
-    if (!validationState?.movementState) return null;
-    
-    switch(validationState.movementState) {
-      case 'MOVE_UP':
-        return 'up';
-      case 'MOVE_DOWN':
-        return 'down';
-      case 'MOVE_LEFT':
-        return 'left';
-      case 'MOVE_RIGHT':
-        return 'right';
-      default:
-        return null;
-    }
-  };
-
-  // Arrow component for validation phase
- const ValidationArrows = ({ direction }) => {
-  if (!direction) return null;
-
-  const animationClass = "animate-pulse";
-  const arrowSize = "w-16 h-16 sm:w-20 sm:h-20";
-
-  const arrowStyle = {
-    filter: 'drop-shadow(0 0 8px rgba(0, 0, 0, 0.6))', // black shadow @ 60%
-    strokeWidth: '2.5',
-  };
-
-    const commonStyle = {
-      ...arrowStyle,
-      fill: '#6FE7B2',                // light green fill
-      stroke: '#000000',              // black border
-      color: '#000000',               // black
-    };
-
-  return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-15">
-      <div className="relative w-3/4 h-3/4">
-        {direction === 'up' && (
-          <div className={`absolute top-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
-            <ArrowBigUp className={arrowSize} style={commonStyle} />
-          </div>
-        )}
-
-        {direction === 'down' && (
-          <div className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 ${animationClass}`}>
-            <ArrowBigDown className={arrowSize} style={commonStyle} />
-          </div>
-        )}
-
-        {direction === 'left' && (
-          <div className={`absolute left-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
-            <ArrowBigLeft className={arrowSize} style={commonStyle} />
-          </div>
-        )}
-
-        {direction === 'right' && (
-          <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${animationClass}`}>
-            <ArrowBigRight className={arrowSize} style={commonStyle} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 
   // Don't render camera view if we're in results phase
   if (currentPhase === 'results') {
@@ -177,11 +101,6 @@ const CameraView = ({
           </div>
         </div>
 
-        {/* Validation Arrows - Only during validation phase */}
-        {showValidationArrows && (
-          <ValidationArrows direction={getArrowDirection()} />
-        )}
-
         {/* Scanning Animation - Only for front and back phases */}
         {showScanningAnimation && (
           <>
@@ -223,12 +142,28 @@ const CameraView = ({
           </>
         )}
 
-        {/* Countdown Overlay */}
+        {/* Countdown Overlay with Prompt Text */}
         {countdown > 0 && (
-          <div className="absolute inset-0 bg-black/10 bg-opacity-50 flex items-center justify-center rounded-lg z-20">
-            <div className="text-6xl font-bold text-white animate-pulse">
+          <div className="absolute inset-0 bg-black/30 bg-opacity-70 flex flex-col items-center justify-center rounded-lg z-25">
+            {/* Countdown Number */}
+            <div className="text-6xl font-bold text-white animate-pulse mb-4">
               {countdown}
             </div>
+            
+            {/* Prompt Text during countdown */}
+            {showPromptText && promptText && (
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 mx-4 max-w-md text-center shadow-lg border-2 border-blue-500">
+                <div className="text-blue-600 text-lg font-semibold mb-2">
+                  📷 Position Your Card
+                </div>
+                <div className="text-gray-800 text-sm leading-relaxed">
+                  {promptText}
+                </div>
+                <div className="mt-3 text-xs text-gray-600 animate-pulse">
+                  Scanning will begin in {countdown} second{countdown !== 1 ? 's' : ''}...
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -242,23 +177,6 @@ const CameraView = ({
           </div>
         )}
       </div>
-
-      {currentPhase === "validation" && validationState?.movementMessage && (
-        <div className="mt-4 text-center">
-          <div
-            className={`text-white border-2 border-red-600 text-sm px-6 py-3 rounded-xl shadow-md inline-block
-             ${
-              validationState.movementMessage === "Physical Card Validated!"
-                ? "bg-green-500"
-                : validationState.movementMessage === "Validation Failed"
-                ? "bg-red-500"
-                : "bg-gray-700"
-            }`}
-          >
-            {validationState.movementMessage}
-          </div>
-        </div>
-      )}
 
       {/* Phase Instructions */}
       <div className="mt-4 text-center">
