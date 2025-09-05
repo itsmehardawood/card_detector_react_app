@@ -315,8 +315,7 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MDc1OTA0LCJleHAiOjE3NTcwNzk1MDQsIm5iZiI6MTc1NzA3NTkwNCwianRpIjoiYnprZmlKZ0p2b2tnaUlDNiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImJiYTcwMmJlLWRhNDUtNGQwNi04ZjJjLThkNWExZGI0YmM1NyIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.vO6V9wBKVaT6Imf8dbrrIneEDFuTA56GGIzCDKvvAeQ",          
-          
+          authToken:"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MDk0NzA0LCJleHAiOjE3NTcwOTgzMDQsIm5iZiI6MTc1NzA5NDcwNCwianRpIjoiTVZFcTRHNGRyeDBLeThBbCIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjNhOWZmNDA3LTczOGQtNGMzOS05NTg5LTBkNGNjMjYyMmVkNiIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.Bcy1nBoQ4ysiTUoBiDsOUQZ5D9QYnWYfAzb4ihh8RdY",
           
           timestamp: Date.now(),
           source: "development_demo",
@@ -544,7 +543,7 @@ const CardDetectionApp = () => {
     });
 
     // Show prompt text for front side positioning
-    setPromptText("Position your card's front side in the camera square frame showing the chip and bank logo clearly");
+    setPromptText("Position your card's front side in the camera square frame for security scan");
     setShowPromptText(true);
 
     // Go directly to front side detection
@@ -645,7 +644,7 @@ const CardDetectionApp = () => {
     if (maxAttemptsReached) return;
 
     // Show prompt text for back side positioning
-    setPromptText("Position your card's back side in the camera square frame showing the magnetic strip and signature area clearly");
+    setPromptText("Position your card's back side in the camera square frame for security scan");
     setShowPromptText(true);
 
     setCurrentPhase("back-countdown");
