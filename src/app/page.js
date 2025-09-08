@@ -315,8 +315,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken:"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MDk5OTEwLCJleHAiOjE3NTcxMDM1MTAsIm5iZiI6MTc1NzA5OTkxMCwianRpIjoiTko3alNFdkdmdDlZRzR2MyIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjJkYmU4MGIzLTE1ZTMtNGM4Yi1iY2UxLWMyMTg4N2ZmMTAyNCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.bHcSnZiBYTP5qqUYb0PoeFosqtLkitTyaxh-vkc_Pag",
-          timestamp: Date.now(),
+          authToken:  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MzMwMzA0LCJleHAiOjE3NTczMzM5MDQsIm5iZiI6MTc1NzMzMDMwNCwianRpIjoiMDJjbkRDVnVNRnNtMjFqQSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImM4YTE2YTZkLWQyYmEtNDU3ZS05NTYzLTc3ZWU0ZjNjNzM5MCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.W3tNQfI3PSjCe5Sj0emHycBXn_kmlIMdjdr5ZZ35lw0",
+                timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -678,9 +678,14 @@ const CardDetectionApp = () => {
               "✅ Valid back-side scan received, transitioning to 'results'"
             );
             setFinalOcrResults(finalResult);
-            setCurrentPhase("results");
+            setCurrentPhase("back-complete");
             setAttemptCount(0);
             setCurrentOperation("");
+            
+            // Show success message for 3 seconds before showing results
+            setTimeout(() => {
+              setCurrentPhase("results");
+            }, 3000);
           } else {
             console.log(
               "⚠️ Scan result didn't meet success + complete_scan criteria"

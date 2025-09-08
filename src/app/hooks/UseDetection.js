@@ -35,6 +35,7 @@ export const useDetection = (
       let frameNumber = 0;
       let timeoutId = null;
       let isComplete = false;
+      let maxFramesReachedTime = null; // Track when we reached 10 frames
       
       const cleanup = () => {
         if (captureIntervalRef.current) {
@@ -52,6 +53,15 @@ export const useDetection = (
         try {
           // Check if stop requested or already complete
           if (isComplete || stopRequestedRef.current) return;
+          
+          // 📊 FRAME LIMIT: Only capture new frames if under 10 frame limit
+          if (frameNumber >= maxFrames) {
+            if (!maxFramesReachedTime) {
+              maxFramesReachedTime = Date.now();
+              console.log(`📋 Reached ${maxFrames} frames limit - no more captures, waiting for responses...`);
+            }
+            return; // Don't capture more frames, but keep waiting for responses
+          }
           
           const frame = await captureFrame(videoRef, canvasRef);
           
@@ -194,10 +204,13 @@ export const useDetection = (
                 return;
               }
               
-              if (frameNumber >= maxFrames) {
+              // 📊 FALLBACK: Only stop due to frame limit if we've been waiting a while
+              // This ensures we give time for API responses after sending 10 frames
+              if (frameNumber >= maxFrames && maxFramesReachedTime && 
+                  (Date.now() - maxFramesReachedTime > 10000)) { // Wait 10 seconds after last frame
+                console.log(`📋 Waited 10 seconds after ${maxFrames} frames - stopping with last response`);
                 isComplete = true;
                 cleanup();
-                console.log(`Reached maximum ${maxFrames} frames for ${phase} side`);
                 
                 if (lastApiResponse) {
                   if (phase === 'back') {
@@ -314,6 +327,7 @@ const captureAndSendFrames = async (phase) => {
     let frameNumber = 0;
     let timeoutId = null;
     let isComplete = false;
+    let maxFramesReachedTime = null; // Track when we reached 10 frames
     
     const cleanup = () => {
       if (captureIntervalRef.current) {
@@ -331,6 +345,17 @@ const captureAndSendFrames = async (phase) => {
       try {
         // Check if stopped
         if (isComplete || stopRequestedRef.current) return;
+        
+        // 📊 FRAME LIMIT: Only capture new frames if under 10 frame limit
+        if (frameNumber >= maxFrames && !maxFramesReachedTime) {
+          console.log(`📋 Reached ${maxFrames} frames limit - stopping new captures but continuing to wait for responses...`);
+          maxFramesReachedTime = Date.now();
+          return; // Don't capture more frames, but keep waiting for responses
+        }
+
+        if (maxFramesReachedTime) {
+          return; // Don't send more frames, just wait for responses
+        }
         
         // Double-check before frame capture to prevent race conditions
         if (isComplete || stopRequestedRef.current) return;
@@ -480,10 +505,16 @@ const captureAndSendFrames = async (phase) => {
               return;
             }
             
+            // 📊 FALLBACK: Only stop due to frame limit if we've been waiting a while  
+            // This ensures we give time for API responses after sending 10 frames
             if (frameNumber >= maxFrames) {
-              isComplete = true;
-              cleanup();
-              console.log(`Reached maximum ${maxFrames} frames for ${phase} side`);
+              // If we just reached the limit, wait 10 seconds for responses
+              if (maxFramesReachedTime && (Date.now() - maxFramesReachedTime) < 10000) {
+                console.log(`📋 Waiting for responses (${Math.round((Date.now() - maxFramesReachedTime) / 1000)}s since reaching frame limit)...`);
+                return; // Keep waiting
+              }
+              
+              console.log(`📋 Reached ${maxFrames} frames and waited - checking if we have sufficient response...`);
               
               if (lastApiResponse) {
                 // Check one final time for complete_scan response

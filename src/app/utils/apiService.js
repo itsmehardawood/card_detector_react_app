@@ -17,13 +17,13 @@ export const sendFrameToAPI = async (
   }
 
   // testing ngrok
-  // const apiUrl = `https://7fa2c26a0353.ngrok-free.app/detect/${merchantId}`;
+  // const apiUrl = `https://2adcfece0fda.ngrok-free.app/detect/${merchantId}`;
 
   // dev server
-  // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
+  const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
 
   // prod server
-  const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
+  // const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
   const file = new File([frameBlob], `${phase}_frame_${frameNumber}.jpg`, {
     type: "image/jpeg",
   });

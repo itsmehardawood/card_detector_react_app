@@ -1,6 +1,7 @@
 import React from 'react';
 import DetectionResults from './DetectionResults';
 import FinalResponse from './FinalResponse';
+import { Check } from 'lucide-react';
 
 const ControlPanel = ({
   currentPhase,
@@ -200,9 +201,20 @@ const ControlPanel = ({
         {/* Phase: ready-for-back */}
         {currentPhase === 'ready-for-back' && (
           <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
-              Front Side Complete
-            </h3>
+            {/* Big Success Message for Front Side */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-4 border-green-400 rounded-xl p-6 mb-6 shadow-lg">
+              <div className="flex items-center justify-center mb-3">
+                <div className="bg-green-500 rounded-full p-3 mr-3">
+                <Check className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-xl sm:text-xl font-bold text-green-700">
+                  FRONT SIDE SCAN SUCCESSFUL!
+                </h3>
+              </div>
+              <p className="text-lg text-green-600 font-semibold">
+                Your cards front side has been successfully scanned and processed
+              </p>
+            </div>
             
             <button
               onClick={onStartBackScan}
@@ -224,6 +236,31 @@ const ControlPanel = ({
                 </div>
               )
             )}
+          </div>
+        )}
+
+        {/* Phase: back-complete */}
+        {currentPhase === 'back-complete' && (
+          <div>
+            {/* Big Success Message for Back Side */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-4 border-green-400 rounded-xl p-3 mb-6 shadow-lg">
+         
+              
+              {/* Complete Success Animation */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50  rounded-lg p-4">
+                <div className="flex items-center justify-center">
+                  <div className="bg-green-500 rounded-full p-2 mr-3 animate-pulse">
+                    <Check className="w-5 h-5 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-green-700">
+                    COMPLETE CARD SCAN SUCCESSFUL!
+                  </h4>
+                </div>
+                <p className="text-center text-green-600 font-medium mt-2">
+                  Both sides scanned successfully. Processing results...
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
