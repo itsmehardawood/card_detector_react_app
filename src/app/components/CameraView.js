@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 const CameraView = ({
   videoRef,
@@ -11,6 +11,47 @@ const CameraView = ({
   showPromptText,
   promptText,
 }) => {
+  const [showMotionPrompt, setShowMotionPrompt] = useState(false);
+  const [motionPromptShown, setMotionPromptShown] = useState(false);
+
+  // Handle motion prompt display with 3-second timer - show only once
+  useEffect(() => {
+    if (currentPhase === 'front' && frontScanState?.showMotionPrompt && !motionPromptShown) {
+      setShowMotionPrompt(true);
+      setMotionPromptShown(true); // Mark as shown to prevent showing again
+      
+      // Hide the prompt after 3 seconds
+      const timer = setTimeout(() => {
+        setShowMotionPrompt(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentPhase, frontScanState?.showMotionPrompt, motionPromptShown]);
+
+  // Immediately hide motion prompt when motion progress reaches 2/2
+  useEffect(() => {
+    if (frontScanState?.hideMotionPrompt) {
+      console.log('🎯 Motion 2/2 detected - hiding motion prompt immediately');
+      setShowMotionPrompt(false);
+    }
+  }, [frontScanState?.hideMotionPrompt]);
+
+  // Reset the prompt shown flag when phase changes or detection restarts
+  useEffect(() => {
+    if (currentPhase !== 'front') {
+      setMotionPromptShown(false);
+      setShowMotionPrompt(false);
+    }
+  }, [currentPhase]);
+
+  // Reset motion prompt when frames are reset (new scan session)
+  useEffect(() => {
+    if (frontScanState?.framesBuffered === 0) {
+      setMotionPromptShown(false);
+      setShowMotionPrompt(false);
+    }
+  }, [frontScanState?.framesBuffered]);
   const getPhaseInstructions = () => {
     switch (currentPhase) {
       case "idle":
@@ -159,9 +200,7 @@ const CameraView = ({
                 <div className="text-gray-500 text-sm leading-relaxed">
                   {promptText}
                 </div>
-                {/* <div className="mt-3 text-xs text-gray-400 animate-pulse">
-                  Scanning will begin in {countdown} second{countdown !== 1 ? 's' : ''}...
-                </div> */}
+             
               </div>
             )}
           </div>
@@ -176,6 +215,40 @@ const CameraView = ({
             </div>
           </div>
         )}
+
+        {/* Motion Progress Prompt - Show when motion_progress is "1/2" for 3 seconds */}
+       
+{showMotionPrompt && (
+  <div className="absolute inset-0 flex items-center justify-center z-40">
+    <div className="bg-black/90 backdrop-blur-sm rounded-lg p-4 mx-4 max-w-md text-center shadow-lg border-2 border-blue-500">
+      
+      {/* Title */}
+      <div className="text-blue-600 text-lg font-semibold mb-2">
+       Motion Required
+      </div>
+
+      {/* Message */}
+      <div className="text-gray-100 text-sm leading-relaxed mb-4">
+        Please move your card slightly for optimal scanning detection
+      </div>
+
+   
+
+      {/* Action indicator */}
+      <div className="flex items-center justify-center space-x-2">
+        <div className="flex space-x-1">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+        </div>
+        <span className="text-xs text-blue-300 ml-2">Adjusting position...</span>
+      </div>
+
+    </div>
+  </div>
+)}
+
+
       </div>
 
       {/* Phase Instructions */}

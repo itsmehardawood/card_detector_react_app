@@ -136,11 +136,20 @@ export const useDetection = (
 
               // Update front scan state for front phase
               if (phase === 'front') {
+                // Log motion progress for debugging
+                if (apiResponse.motion_progress) {
+                  console.log(`🎯 Motion progress detected: ${apiResponse.motion_progress}`);
+                }
+                
                 setFrontScanState({
                   framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
                   chipDetected: apiResponse.chip || false,
                   bankLogoDetected: apiResponse.bank_logo || false,
-                  canProceedToBack: false
+                  canProceedToBack: false,
+                  motionProgress: apiResponse.motion_progress || null,
+                  showMotionPrompt: apiResponse.motion_progress === "1/2",
+                  hideMotionPrompt: apiResponse.motion_progress === "2/2",
+                  motionPromptTimestamp: apiResponse.motion_progress === "1/2" ? Date.now() : null
                 });
               }
               
@@ -444,6 +453,25 @@ const captureAndSendFrames = async (phase) => {
             
             lastApiResponse = apiResponse;
             setIsProcessing(false);
+            
+            // Update front scan state for front phase
+            if (phase === 'front') {
+              // Log motion progress for debugging
+              if (apiResponse.motion_progress) {
+                console.log(`🎯 Motion progress detected: ${apiResponse.motion_progress}`);
+              }
+              
+              setFrontScanState({
+                framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
+                chipDetected: apiResponse.chip || false,
+                bankLogoDetected: apiResponse.bank_logo || false,
+                canProceedToBack: false,
+                motionProgress: apiResponse.motion_progress || null,
+                showMotionPrompt: apiResponse.motion_progress === "1/2",
+                hideMotionPrompt: apiResponse.motion_progress === "2/2",
+                motionPromptTimestamp: apiResponse.motion_progress === "1/2" ? Date.now() : null
+              });
+            }
             
             const bufferedFrames = phase === 'front' 
               ? apiResponse.buffer_info?.front_frames_buffered 

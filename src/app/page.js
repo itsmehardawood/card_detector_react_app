@@ -60,6 +60,10 @@ const CardDetectionApp = () => {
     chipDetected: false,
     bankLogoDetected: false,
     canProceedToBack: false,
+    motionProgress: null,
+    showMotionPrompt: false,
+    hideMotionPrompt: false,
+    motionPromptTimestamp: null,
   });
 
   const [merchantInfo, setMerchantInfo] = useState({
@@ -315,8 +319,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken:  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MzMwMzA0LCJleHAiOjE3NTczMzM5MDQsIm5iZiI6MTc1NzMzMDMwNCwianRpIjoiMDJjbkRDVnVNRnNtMjFqQSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImM4YTE2YTZkLWQyYmEtNDU3ZS05NTYzLTc3ZWU0ZjNjNzM5MCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.W3tNQfI3PSjCe5Sj0emHycBXn_kmlIMdjdr5ZZ35lw0",
-                timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3MzQxMDczLCJleHAiOjE3NTczNDQ2NzMsIm5iZiI6MTc1NzM0MTA3MywianRpIjoid0Y2bmxBVmxQTDRuYVZPeiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjkwOTNkNTI4LWViNDgtNDRiOC05OGZjLTdhN2RlNTIwZWYwZCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.nT8so2eGJD1g9-bIC4vyNve_8TPwSWOFkVygUydDUvc",
+              timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -494,6 +498,10 @@ const CardDetectionApp = () => {
         chipDetected: false,
         bankLogoDetected: false,
         canProceedToBack: false,
+        motionProgress: null,
+        showMotionPrompt: false,
+        hideMotionPrompt: false,
+        motionPromptTimestamp: null,
       });
     } else if (currentPhase === "back-countdown" || currentPhase === "back") {
       setCurrentPhase("ready-for-back");
@@ -539,6 +547,10 @@ const CardDetectionApp = () => {
       chipDetected: false,
       bankLogoDetected: false,
       canProceedToBack: false,
+      motionProgress: null,
+      showMotionPrompt: false,
+      hideMotionPrompt: false,
+      motionPromptTimestamp: null,
     });
 
     // Show prompt text for front side positioning
@@ -593,6 +605,10 @@ const CardDetectionApp = () => {
       chipDetected: false,
       bankLogoDetected: false,
       canProceedToBack: false,
+      motionProgress: null,
+      showMotionPrompt: false,
+      hideMotionPrompt: false,
+      motionPromptTimestamp: null,
     });
 
     // Show prompt text for front side positioning
@@ -732,6 +748,10 @@ const CardDetectionApp = () => {
       chipDetected: false,
       bankLogoDetected: false,
       canProceedToBack: false,
+      motionProgress: null,
+      showMotionPrompt: false,
+      hideMotionPrompt: false,
+      motionPromptTimestamp: null,
     });
     capturedFrames.current = [];
 
@@ -768,6 +788,10 @@ const CardDetectionApp = () => {
         chipDetected: false,
         bankLogoDetected: false,
         canProceedToBack: false,
+        motionProgress: null,
+        showMotionPrompt: false,
+        hideMotionPrompt: false,
+        motionPromptTimestamp: null,
       });
     } else if (currentOperation === "back") {
       setCurrentPhase("ready-for-back");
