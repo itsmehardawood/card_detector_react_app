@@ -145,6 +145,7 @@ export const useDetection = (
                   framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
                   chipDetected: apiResponse.chip || false,
                   bankLogoDetected: apiResponse.bank_logo || false,
+                  physicalCardDetected: apiResponse.physical_card || false,
                   canProceedToBack: false,
                   motionProgress: apiResponse.motion_progress || null,
                   showMotionPrompt: apiResponse.motion_progress === "1/2",
@@ -197,11 +198,11 @@ export const useDetection = (
                   return;
                 }
               } else if (phase === 'front' && bufferedFrames >= 6) {
-                // For front side, check if we have chip or bank logo
-                if (apiResponse.chip || apiResponse.bank_logo) {
+                // For front side, check if we have chip or bank logo AND physical_card is true
+                if ((apiResponse.chip || apiResponse.bank_logo) && apiResponse.physical_card === true) {
                   isComplete = true;
                   cleanup();
-                  console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}`);
+                  console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
                   resolve(apiResponse);
                   return;
                 }
@@ -465,6 +466,7 @@ const captureAndSendFrames = async (phase) => {
                 framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
                 chipDetected: apiResponse.chip || false,
                 bankLogoDetected: apiResponse.bank_logo || false,
+                physicalCardDetected: apiResponse.physical_card || false,
                 canProceedToBack: false,
                 motionProgress: apiResponse.motion_progress || null,
                 showMotionPrompt: apiResponse.motion_progress === "1/2",
@@ -517,11 +519,11 @@ const captureAndSendFrames = async (phase) => {
                 // Continue processing, don't resolve yet - wait for complete_scan
               }
             } else if (phase === 'front' && bufferedFrames >= 6) {
-              // For front side, check if we have chip or bank logo
-              if (apiResponse.chip || apiResponse.bank_logo) {
+              // For front side, check if we have chip or bank logo AND physical_card is true
+              if ((apiResponse.chip || apiResponse.bank_logo) && apiResponse.physical_card === true) {
                 isComplete = true;
                 cleanup();
-                console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}`);
+                console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
                 resolve(apiResponse);
                 return;
               }
