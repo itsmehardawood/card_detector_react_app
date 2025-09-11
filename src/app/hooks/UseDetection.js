@@ -72,7 +72,19 @@ export const useDetection = (
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
               
-              // 🎯 HIGHEST PRIORITY: Check for status success (regardless of other conditions)
+              // 🚨 HIGHEST PRIORITY: Check for fake card detection in front phase
+              if (phase === 'front' && apiResponse.fake_card === true) {
+                console.log('🚨 FAKE CARD DETECTED! Stopping detection immediately...');
+                isComplete = true;
+                cleanup();
+                if (handleDetectionFailure) {
+                  handleDetectionFailure('Fake card detected. Please use an original card to scan.', 'front');
+                }
+                reject(new Error('Fake card detected'));
+                return;
+              }
+              
+              // 🎯 SECOND PRIORITY: Check for status success (regardless of other conditions)
               if (apiResponse.status === "success") {
                 console.log('🎯 SUCCESS STATUS received! Stopping detection...');
                 console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
@@ -146,6 +158,7 @@ export const useDetection = (
                   chipDetected: apiResponse.chip || false,
                   bankLogoDetected: apiResponse.bank_logo || false,
                   physicalCardDetected: apiResponse.physical_card || false,
+                  fakeCardDetected: apiResponse.fake_card || false,
                   canProceedToBack: false,
                   motionProgress: apiResponse.motion_progress || null,
                   showMotionPrompt: apiResponse.motion_progress === "1/2",
@@ -297,7 +310,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 45000);
+      }, 50000);
     });
   };
 
@@ -382,7 +395,19 @@ const captureAndSendFrames = async (phase) => {
           try {
             const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
             
-            // 🎯 HIGHEST PRIORITY: Check for status success (regardless of complete_scan)
+            // 🚨 HIGHEST PRIORITY: Check for fake card detection in front phase
+            if (phase === 'front' && apiResponse.fake_card === true) {
+              console.log('🚨 FAKE CARD DETECTED! Stopping detection immediately...');
+              isComplete = true;
+              cleanup();
+              if (handleDetectionFailure) {
+                handleDetectionFailure('Fake card detected. Please use an original card to scan.', 'front');
+              }
+              reject(new Error('Fake card detected'));
+              return;
+            }
+            
+            // 🎯 SECOND PRIORITY: Check for status success (regardless of complete_scan)
             if (apiResponse.status === "success") {
               console.log('🎯 SUCCESS STATUS received! Stopping all detection immediately...');
               console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
@@ -467,6 +492,7 @@ const captureAndSendFrames = async (phase) => {
                 chipDetected: apiResponse.chip || false,
                 bankLogoDetected: apiResponse.bank_logo || false,
                 physicalCardDetected: apiResponse.physical_card || false,
+                fakeCardDetected: apiResponse.fake_card || false,
                 canProceedToBack: false,
                 motionProgress: apiResponse.motion_progress || null,
                 showMotionPrompt: apiResponse.motion_progress === "1/2",
@@ -648,7 +674,7 @@ const captureAndSendFrames = async (phase) => {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 40000);
+    }, 50000);
   });
 };
 

@@ -18,7 +18,7 @@ import Image from "next/image";
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 5;
-const DETECTION_TIMEOUT = 40000; // 40 seconds
+const DETECTION_TIMEOUT = 50000; // 40 seconds
 
 const CardDetectionApp = () => {
   // Authentication state
@@ -60,6 +60,7 @@ const CardDetectionApp = () => {
     chipDetected: false,
     bankLogoDetected: false,
     physicalCardDetected: false,
+    fakeCardDetected: false,
     canProceedToBack: false,
     motionProgress: null,
     showMotionPrompt: false,
@@ -320,8 +321,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3NDIxMDY3LCJleHAiOjE3NTc0MjQ2NjcsIm5iZiI6MTc1NzQyMTA2NywianRpIjoiZ2ZsdGdyUFVVMXBBYTlnaSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImQ0MmNmMDViLTFlZGEtNDQ2ZC04MDc2LWIxOWZmMDc2NTIzZCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.9XkllNG6TW6FXIrCDP0WBn2vbKgaSHJJpmi8DK6Fzws", 
-              timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3NTkxOTQ4LCJleHAiOjE3NTc1OTU1NDgsIm5iZiI6MTc1NzU5MTk0OCwianRpIjoiZGNKbVlGV1VxUVRHWjJmbCIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjI5ZDdhMTMzLTc4ZjAtNGQzNC1hZjhlLThjMmUxMmZlNTQ2NiIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.E7C_iBaFCXvHcFBzi3RllZj_7Nv4zZbnb1TXSE-qrdA",
+            timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -499,6 +500,7 @@ const CardDetectionApp = () => {
         chipDetected: false,
         bankLogoDetected: false,
         physicalCardDetected: false,
+        fakeCardDetected: false,
         canProceedToBack: false,
         motionProgress: null,
         showMotionPrompt: false,
@@ -549,6 +551,7 @@ const CardDetectionApp = () => {
       chipDetected: false,
       bankLogoDetected: false,
       physicalCardDetected: false,
+      fakeCardDetected: false,
       canProceedToBack: false,
       motionProgress: null,
       showMotionPrompt: false,
@@ -608,6 +611,7 @@ const CardDetectionApp = () => {
       chipDetected: false,
       bankLogoDetected: false,
       physicalCardDetected: false,
+      fakeCardDetected: false,
       canProceedToBack: false,
       motionProgress: null,
       showMotionPrompt: false,
@@ -752,6 +756,7 @@ const CardDetectionApp = () => {
       chipDetected: false,
       bankLogoDetected: false,
       physicalCardDetected: false,
+      fakeCardDetected: false,
       canProceedToBack: false,
       motionProgress: null,
       showMotionPrompt: false,
@@ -793,6 +798,7 @@ const CardDetectionApp = () => {
         chipDetected: false,
         bankLogoDetected: false,
         physicalCardDetected: false,
+        fakeCardDetected: false,
         canProceedToBack: false,
         motionProgress: null,
         showMotionPrompt: false,

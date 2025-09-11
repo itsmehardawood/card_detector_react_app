@@ -47,12 +47,28 @@ const ControlPanel = ({
 
   // Error state with attempt tracking (enhanced from both files)
   if (currentPhase === 'error') {
+    // Check if this is a fake card error
+    const isFakeCardError = errorMessage.toLowerCase().includes('fake card');
+    
     return (
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
           <div className="mb-4">
-            <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Security Scan Detection Failed</h3>
-            <p className="text-red-700 mb-3">Please ensure the card is in a clear view.</p>
+            {isFakeCardError ? (
+              <>
+                <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">🚨 Fake Card Detected</h3>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-red-700 font-bold mb-2">⚠️ Security Alert</p>
+                  <p className="text-red-700 mb-3">Please use an original card to scan.</p>
+                  <p className="text-sm text-red-600">For security reasons, we cannot process cards that appear to be copies or replicas.</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Security Scan Detection Failed</h3>
+                <p className="text-red-700 mb-3">Please ensure the card is in a clear view.</p>
+              </>
+            )}
             
             {!maxAttemptsReached && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
