@@ -8,6 +8,11 @@
  * - Proper async handling with toBlob()
  * - Frame counter should be managed by calling hook
  * - Built-in safeguards against multiple simultaneous captures
+ * 
+ * PERMISSION HANDLING:
+ * - Detects "Only This Time" permission issues
+ * - Automatic permission re-request functionality
+ * - Comprehensive error handling for mobile webview
  */
 
 // Camera Utilities for Card Detection
@@ -15,9 +20,38 @@
 // 🔒 CAPTURE LOCK: Prevents multiple simultaneous frame captures
 let isCapturing = false;
 
-// Initialize camera with proper settings
-export const initializeCamera = async (videoRef) => {
+// 📱 CHECK CAMERA PERMISSIONS
+// Checks current camera permission status
+export const checkCameraPermissions = async () => {
   try {
+    if (!navigator.permissions) {
+      console.log('🔍 Permissions API not available, will attempt direct access');
+      return 'granted'; // Assume granted for older browsers
+    }
+
+    const result = await navigator.permissions.query({ name: 'camera' });
+    console.log('📹 Camera permission status:', result.state);
+    return result.state; // 'granted', 'denied', or 'prompt'
+  } catch (error) {
+    console.log('🔍 Permission query failed, will attempt direct access:', error);
+    return 'unknown';
+  }
+};
+
+// 🎯 ENHANCED CAMERA INITIALIZATION WITH PERMISSION HANDLING
+// Initialize camera with proper settings and permission detection
+export const initializeCamera = async (videoRef, onPermissionDenied = null) => {
+  try {
+    console.log('📹 Starting camera initialization...');
+    
+    // First check if we have existing permissions
+    const permissionStatus = await checkCameraPermissions();
+    console.log('🔐 Current permission status:', permissionStatus);
+
+    if (permissionStatus === 'denied') {
+      throw new Error('PERMISSION_DENIED');
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({ 
       video: { 
         width: 1280, 
@@ -25,14 +59,151 @@ export const initializeCamera = async (videoRef) => {
         facingMode: 'environment'
       } 
     });
+
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
+      
+      // Wait for video to be ready
+      return new Promise((resolve, reject) => {
+        const video = videoRef.current;
+        
+        const onLoadedData = () => {
+          console.log('✅ Camera initialized successfully');
+          video.removeEventListener('loadeddata', onLoadedData);
+          video.removeEventListener('error', onError);
+          resolve(stream);
+        };
+
+        const onError = (error) => {
+          console.error('❌ Video element error:', error);
+          video.removeEventListener('loadeddata', onLoadedData);
+          video.removeEventListener('error', onError);
+          reject(new Error('VIDEO_ELEMENT_ERROR'));
+        };
+
+        video.addEventListener('loadeddata', onLoadedData);
+        video.addEventListener('error', onError);
+
+        // Timeout if video doesn't load within 10 seconds
+        setTimeout(() => {
+          video.removeEventListener('loadeddata', onLoadedData);
+          video.removeEventListener('error', onError);
+          reject(new Error('VIDEO_LOAD_TIMEOUT'));
+        }, 10000);
+      });
+    } else {
+      throw new Error('VIDEO_REF_NULL');
     }
-    return stream;
   } catch (error) {
-    console.error('Camera initialization failed:', error);
-    throw new Error('Camera access is required for card detection');
+    console.error('❌ Camera initialization failed:', error);
+    
+    // Handle specific error types
+    if (error.name === 'NotAllowedError' || error.message === 'PERMISSION_DENIED') {
+      // Permission was denied or revoked
+      console.log('🚫 Camera permission denied or revoked');
+      if (onPermissionDenied) {
+        onPermissionDenied('PERMISSION_DENIED');
+      }
+      throw new Error('PERMISSION_DENIED');
+    } else if (error.name === 'NotFoundError') {
+      // No camera found
+      console.log('📹 No camera device found');
+      if (onPermissionDenied) {
+        onPermissionDenied('NO_CAMERA');
+      }
+      throw new Error('NO_CAMERA');
+    } else if (error.name === 'NotReadableError') {
+      // Camera in use by another app
+      console.log('📹 Camera is in use by another application');
+      if (onPermissionDenied) {
+        onPermissionDenied('CAMERA_IN_USE');
+      }
+      throw new Error('CAMERA_IN_USE');
+    } else {
+      // Generic error
+      console.log('❌ Generic camera error:', error.message);
+      if (onPermissionDenied) {
+        onPermissionDenied('GENERIC_ERROR');
+      }
+      throw new Error('CAMERA_ACCESS_FAILED');
+    }
   }
+};
+
+// 🔄 RE-REQUEST CAMERA PERMISSIONS
+// Attempts to re-request camera permissions (useful for "Only This Time" scenarios)
+export const requestCameraPermissions = async (videoRef, onPermissionDenied = null) => {
+  console.log('🔄 Re-requesting camera permissions...');
+  
+  try {
+    // Clean up any existing stream first
+    if (videoRef.current?.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+
+    // Wait a moment for cleanup
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Try to initialize camera again
+    return await initializeCamera(videoRef, onPermissionDenied);
+  } catch (error) {
+    console.error('❌ Camera permission re-request failed:', error);
+    throw error;
+  }
+};
+
+// 📹 CHECK IF CAMERA IS WORKING
+// Validates if the camera stream is active and working
+export const isCameraWorking = (videoRef) => {
+  if (!videoRef.current) {
+    console.log('📹 Video ref is null');
+    return false;
+  }
+
+  const video = videoRef.current;
+  
+  // Check if video has a source
+  if (!video.srcObject) {
+    console.log('📹 No video source object');
+    return false;
+  }
+
+  // Check if stream is active
+  const stream = video.srcObject;
+  const tracks = stream.getTracks();
+  
+  if (tracks.length === 0) {
+    console.log('📹 No video tracks found');
+    return false;
+  }
+
+  const videoTrack = tracks.find(track => track.kind === 'video');
+  if (!videoTrack) {
+    console.log('📹 No video track found');
+    return false;
+  }
+
+  if (videoTrack.readyState !== 'live') {
+    console.log('📹 Video track is not live:', videoTrack.readyState);
+    return false;
+  }
+
+  // Check video dimensions
+  if (video.videoWidth === 0 || video.videoHeight === 0) {
+    console.log('📹 Video has no dimensions');
+    return false;
+  }
+
+  // Check if video is ready
+  if (video.readyState < 2) {
+    console.log('📹 Video not ready:', video.readyState);
+    return false;
+  }
+
+  console.log('✅ Camera is working properly');
+  return true;
 };
 
 

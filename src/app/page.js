@@ -11,6 +11,9 @@ import {
   initializeCamera,
   captureFrame,
   cleanupCamera,
+  checkCameraPermissions,
+  requestCameraPermissions,
+  isCameraWorking,
 } from "./utils/CameraUtils";
 import { sendFrameToAPI } from "./utils/apiService";
 import { useDetection } from "./hooks/UseDetection";
@@ -38,6 +41,12 @@ const CardDetectionApp = () => {
   const [countdown, setCountdown] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("");
+
+  // Camera permission state
+  const [cameraPermissionStatus, setCameraPermissionStatus] = useState("unknown");
+  const [showPermissionAlert, setShowPermissionAlert] = useState(false);
+  const [cameraInitialized, setCameraInitialized] = useState(false);
+  const [cameraError, setCameraError] = useState("");
 
   // Prompt text state for positioning guidance
   const [showPromptText, setShowPromptText] = useState(false);
@@ -163,6 +172,67 @@ const CardDetectionApp = () => {
       fetchMerchantDisplayInfo(Merchant);
     }
   }, [Merchant]);
+
+  // 📹 CAMERA PERMISSION HANDLER
+  // Handles camera permission errors and provides user feedback
+  const handleCameraPermissionError = (errorType) => {
+    console.log('📹 Camera permission error:', errorType);
+    setCameraInitialized(false);
+    
+    switch (errorType) {
+      case 'PERMISSION_DENIED':
+        setCameraPermissionStatus('denied');
+        setCameraError('Camera permission denied. Please enable camera access and try again.');
+        setShowPermissionAlert(true);
+        break;
+      case 'NO_CAMERA':
+        setCameraError('No camera device found. Please ensure your device has a camera.');
+        setShowPermissionAlert(true);
+        break;
+      case 'CAMERA_IN_USE':
+        setCameraError('Camera is currently in use by another application. Please close other camera apps and try again.');
+        setShowPermissionAlert(true);
+        break;
+      case 'GENERIC_ERROR':
+      default:
+        setCameraError('Unable to access camera. Please check permissions and try again.');
+        setShowPermissionAlert(true);
+        break;
+    }
+  };
+
+  // 🔄 REQUEST CAMERA PERMISSIONS
+  // Attempts to request camera permissions again
+  const handleRequestCameraPermission = async () => {
+    console.log('🔄 Requesting camera permissions...');
+    setShowPermissionAlert(false);
+    setCameraError('');
+    
+    try {
+      await requestCameraPermissions(videoRef, handleCameraPermissionError);
+      setCameraInitialized(true);
+      setCameraPermissionStatus('granted');
+      console.log('✅ Camera permissions granted and camera initialized');
+    } catch (error) {
+      console.error('❌ Camera permission request failed:', error);
+      // Error handling is done in handleCameraPermissionError
+    }
+  };
+
+  // 📹 CHECK CAMERA STATUS
+  // Periodically checks if camera is still working (for "Only This Time" detection)
+  const checkCameraStatus = async () => {
+    if (!cameraInitialized) return;
+    
+    const isWorking = isCameraWorking(videoRef);
+    if (!isWorking) {
+      console.log('📹 Camera stopped working, likely permission revoked');
+      setCameraInitialized(false);
+      setCameraPermissionStatus('prompt');
+      setShowPermissionAlert(true);
+      setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
+    }
+  };
 
   // Helper function to handle detection failures with attempt tracking
   const handleDetectionFailure = (message, operation) => {
@@ -320,8 +390,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3NDIxMDY3LCJleHAiOjE3NTc0MjQ2NjcsIm5iZiI6MTc1NzQyMTA2NywianRpIjoiZ2ZsdGdyUFVVMXBBYTlnaSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImQ0MmNmMDViLTFlZGEtNDQ2ZC04MDc2LWIxOWZmMDc2NTIzZCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.9XkllNG6TW6FXIrCDP0WBn2vbKgaSHJJpmi8DK6Fzws", 
-              timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3NTk0NjE1LCJleHAiOjE3NTc1OTgyMTUsIm5iZiI6MTc1NzU5NDYxNSwianRpIjoiTnpCeVU1ZEhtUkFGR0FIQSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImNmMTUwMGYyLWEyMzAtNDE3Ny04OWQxLTIzMmM1ZmVlMjQ4MSIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.aaEod0q2-EmnHIvMwtzF9mOS_Q77kbx2TxCYgFhynMw",
+            timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -373,21 +443,53 @@ const CardDetectionApp = () => {
   // Initialize camera after auth is ready
   useEffect(() => {
     if (authData && !authLoading) {
-      initializeCamera(videoRef)
-        .then(() => {
-          console.log("📷 Camera initialized successfully");
-        })
-        .catch((error) => {
+      console.log('📹 Initializing camera with permission handling...');
+      
+      const initCamera = async () => {
+        try {
+          // Check permission status first
+          const permissionStatus = await checkCameraPermissions();
+          setCameraPermissionStatus(permissionStatus);
+          
+          if (permissionStatus === 'denied') {
+            console.log('📹 Camera permission denied');
+            handleCameraPermissionError('PERMISSION_DENIED');
+            return;
+          }
+
+          // Try to initialize camera
+          await initializeCamera(videoRef, handleCameraPermissionError);
+          setCameraInitialized(true);
+          setCameraPermissionStatus('granted');
+          console.log("✅ Camera initialized successfully");
+          
+          // Start periodic camera status checking (every 30 seconds)
+          const checkInterval = setInterval(checkCameraStatus, 30000);
+          
+          return () => {
+            clearInterval(checkInterval);
+          };
+          
+        } catch (error) {
           console.error("❌ Camera initialization failed:", error);
-          setErrorMessage(
-            "Camera access failed. Please allow camera permissions."
-          );
-        });
+          setCameraInitialized(false);
+          
+          // Don't show generic error message, let handleCameraPermissionError handle it
+          if (error.message !== 'PERMISSION_DENIED' && 
+              error.message !== 'NO_CAMERA' && 
+              error.message !== 'CAMERA_IN_USE') {
+            setErrorMessage("Camera access failed. Please check permissions and try again.");
+          }
+        }
+      };
+
+      initCamera();
     }
 
     return () => {
       cleanupCamera(videoRef);
       clearDetectionTimeout();
+      setCameraInitialized(false);
 
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
@@ -535,6 +637,14 @@ const CardDetectionApp = () => {
   const startCardScanning = async () => {
     if (maxAttemptsReached) return;
 
+    // 📹 CHECK CAMERA STATUS BEFORE SCANNING
+    if (!cameraInitialized || !isCameraWorking(videoRef)) {
+      console.log('📹 Camera not ready, requesting permissions...');
+      setCameraError('Camera access is required to start scanning. Please enable camera permissions.');
+      setShowPermissionAlert(true);
+      return;
+    }
+
     // Initialize session
     const currentSessionId = `session_${Date.now()}`;
     setSessionId(currentSessionId);
@@ -603,6 +713,14 @@ const CardDetectionApp = () => {
   const startFrontSideDetection = async () => {
     if (maxAttemptsReached) return;
 
+    // 📹 CHECK CAMERA STATUS BEFORE SCANNING
+    if (!cameraInitialized || !isCameraWorking(videoRef)) {
+      console.log('📹 Camera not ready for front scanning, requesting permissions...');
+      setCameraError('Camera access is required to scan the front side. Please enable camera permissions.');
+      setShowPermissionAlert(true);
+      return;
+    }
+
     setFrontScanState({
       framesBuffered: 0,
       chipDetected: false,
@@ -661,6 +779,14 @@ const CardDetectionApp = () => {
 
   const startBackSideDetection = async () => {
     if (maxAttemptsReached) return;
+
+    // 📹 CHECK CAMERA STATUS BEFORE SCANNING
+    if (!cameraInitialized || !isCameraWorking(videoRef)) {
+      console.log('📹 Camera not ready for back scanning, requesting permissions...');
+      setCameraError('Camera access is required to scan the back side. Please enable camera permissions.');
+      setShowPermissionAlert(true);
+      return;
+    }
 
     // Show prompt text for back side positioning
     setPromptText("Position your card's back side in the camera square frame for security scan");
@@ -847,6 +973,53 @@ const CardDetectionApp = () => {
             {merchantName || "Card Security Scan"}
           </h1>
         </div>
+
+        {/* Camera Permission Alert Dialog */}
+        {showPermissionAlert && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-red-600 text-3xl">📹</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Camera Access Required
+                </h3>
+                <p className="text-gray-600 text-sm mb-6">
+                  {cameraError || "Camera permission is required to scan your card. Please enable camera access to continue."}
+                </p>
+                
+                {cameraPermissionStatus === 'denied' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-yellow-800 text-xs">
+<strong>Note:</strong> If you selected &quot;Only This Time&quot; previously, you&apos;ll need to grant permission again.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={handleRequestCameraPermission}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Enable Camera Access
+                  </button>
+                  <button
+                    onClick={() => setShowPermissionAlert(false)}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                
+            <div className="mt-4 text-xs text-gray-500">
+  {`For best experience, select "Allow" when prompted for camera permission`}
+</div>
+
+              </div>
+            </div>
+          </div>
+        )}
 
         <CameraView
           videoRef={videoRef}
