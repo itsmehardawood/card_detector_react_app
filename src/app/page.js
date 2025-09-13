@@ -221,18 +221,48 @@ const CardDetectionApp = () => {
 
   // 📹 CHECK CAMERA STATUS
   // Periodically checks if camera is still working (for "Only This Time" detection)
-  const checkCameraStatus = async () => {
-    if (!cameraInitialized) return;
+  // const checkCameraStatus = async () => {
+  //   if (!cameraInitialized) return;
     
-    const isWorking = isCameraWorking(videoRef);
-    if (!isWorking) {
-      console.log('📹 Camera stopped working, likely permission revoked');
+  //   const isWorking = isCameraWorking(videoRef);
+  //   if (!isWorking) {
+  //     console.log('📹 Camera stopped working, likely permission revoked');
+  //     setCameraInitialized(false);
+  //     setCameraPermissionStatus('prompt');
+  //     setShowPermissionAlert(true);
+  //     setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
+  //   }
+  // };
+
+  const checkCameraStatus = async () => {
+  if (!cameraInitialized) return;
+  
+  const isWorking = isCameraWorking(videoRef);
+  if (!isWorking) {
+    console.log('📹 Camera stopped working, likely permission revoked');
+    setCameraInitialized(false);
+    setCameraPermissionStatus('prompt');
+    setShowPermissionAlert(true);
+    setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
+    return;
+  }
+
+  // Additional WebView permission test
+  try {
+    const testStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 320, height: 240 }
+    });
+    testStream.getTracks().forEach(track => track.stop());
+  } catch (testError) {
+    if (testError.name === 'NotAllowedError') {
+      console.log('📹 Permission test failed - permission expired');
       setCameraInitialized(false);
-      setCameraPermissionStatus('prompt');
+      setCameraPermissionStatus('denied');
       setShowPermissionAlert(true);
-      setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
+      setCameraError('Camera permission expired. Please grant camera access again.');
     }
-  };
+  }
+};
 
   // Helper function to handle detection failures with attempt tracking
   const handleDetectionFailure = (message, operation) => {
@@ -457,6 +487,21 @@ const CardDetectionApp = () => {
             return;
           }
 
+          // FOR WEBVIEW: Force permission test even if status seems OK
+    if (permissionStatus === 'unknown' || permissionStatus === 'granted') {
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240 }
+        });
+        testStream.getTracks().forEach(track => track.stop());
+        console.log('✅ WebView permission test passed');
+      } catch (testError) {
+        if (testError.name === 'NotAllowedError') {
+          handleCameraPermissionError('PERMISSION_DENIED');
+          return;
+        }
+      }
+    }
           // Try to initialize camera
           await initializeCamera(videoRef, handleCameraPermissionError);
           setCameraInitialized(true);
