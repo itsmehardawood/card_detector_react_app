@@ -332,27 +332,6 @@
 // };
 
 
-/**
- * 🎯 CAMERA UTILITIES FOR CARD DETECTION
- * 
- * This module handles camera initialization, frame capture, and cleanup.
- * 
- * FRAME CAPTURE SAFETY:
- * - Ensures only one frame capture operation at a time
- * - Proper async handling with toBlob()
- * - Frame counter should be managed by calling hook
- * - Built-in safeguards against multiple simultaneous captures
- * 
- * PERMISSION HANDLING:
- * - Detects "Only This Time" permission issues
- * - Automatic permission re-request functionality
- * - Comprehensive error handling for mobile webview
- * - Enhanced WebView compatibility
- */
-
-// Camera Utilities for Card Detection
-
-// 🔒 CAPTURE LOCK: Prevents multiple simultaneous frame captures
 let isCapturing = false;
 
 // 🔍 WEBVIEW DETECTION

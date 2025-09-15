@@ -204,21 +204,71 @@ const CardDetectionApp = () => {
 
   // 🔄 REQUEST CAMERA PERMISSIONS
   // Attempts to request camera permissions again
-  const handleRequestCameraPermission = async () => {
-    console.log('🔄 Requesting camera permissions...');
-    setShowPermissionAlert(false);
-    setCameraError('');
+  // const handleRequestCameraPermission = async () => {
+  //   console.log('🔄 Requesting camera permissions...');
+  //   setShowPermissionAlert(false);
+  //   setCameraError('');
     
-    try {
-      await requestCameraPermissions(videoRef, handleCameraPermissionError);
+  //   try {
+  //     await requestCameraPermissions(videoRef, handleCameraPermissionError);
+  //     setCameraInitialized(true);
+  //     setCameraPermissionStatus('granted');
+  //     console.log('✅ Camera permissions granted and camera initialized');
+  //   } catch (error) {
+  //     console.error('❌ Camera permission request failed:', error);
+  //     // Error handling is done in handleCameraPermissionError
+  //   }
+  // };
+
+
+
+const handleRequestCameraPermission = async () => {
+  console.log('Requesting camera permissions...');
+  setShowPermissionAlert(false);
+  setCameraError('');
+  
+  try {
+    // Try to get camera access directly
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { 
+        width: 1280, 
+        height: 720,
+        facingMode: 'environment'
+      }
+    });
+    
+    // If successful, assign to video element
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
       setCameraInitialized(true);
       setCameraPermissionStatus('granted');
-      console.log('✅ Camera permissions granted and camera initialized');
-    } catch (error) {
-      console.error('❌ Camera permission request failed:', error);
-      // Error handling is done in handleCameraPermissionError
+      console.log('Camera access granted successfully');
+    } else {
+      // Stop stream if no video ref
+      stream.getTracks().forEach(track => track.stop());
+      throw new Error('Video element not available');
     }
-  };
+    
+  } catch (error) {
+    console.error('Camera permission request failed:', error);
+    
+    if (error.name === 'NotAllowedError') {
+      // User denied permission - show different message
+      setCameraError('Camera permission was denied. Please enable camera access in your device settings.');
+      setShowPermissionAlert(true);
+    } else if (error.name === 'NotFoundError') {
+      setCameraError('No camera found on this device.');
+      setShowPermissionAlert(true);
+    } else {
+      setCameraError('Unable to access camera. Please try again.');
+      setShowPermissionAlert(true);
+    }
+  }
+};
+
+
+
+
 
   // 📹 CHECK CAMERA STATUS
   // Periodically checks if camera is still working (for "Only This Time" detection)
@@ -234,6 +284,9 @@ const CardDetectionApp = () => {
   //     setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
   //   }
   // };
+
+
+  
 
   const checkCameraStatus = async () => {
   if (!cameraInitialized) return;
