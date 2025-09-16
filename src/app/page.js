@@ -11,12 +11,16 @@ import {
   initializeCamera,
   captureFrame,
   cleanupCamera,
+  checkCameraPermissions,
+  requestCameraPermissions,
+  isCameraWorking,
 } from "./utils/CameraUtils";
 import { sendFrameToAPI } from "./utils/apiService";
 import { useDetection } from "./hooks/UseDetection";
+import Image from "next/image";
 
 // Constants for attempt limits and timeouts
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 5;
 const DETECTION_TIMEOUT = 40000; // 40 seconds
 
 const CardDetectionApp = () => {
@@ -24,6 +28,10 @@ const CardDetectionApp = () => {
   const [authData, setAuthData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+
+  const [Merchant, setMerchant] = useState(null);
+  const [merchantName, setMerchantName] = useState(null);
+  const [merchantLogo, setMerchantLogo] = useState(null);
 
   // Existing state management
   const [currentPhase, setCurrentPhase] = useState("idle");
@@ -34,24 +42,46 @@ const CardDetectionApp = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionId, setSessionId] = useState("");
 
+  // Camera permission state
+  const [cameraPermissionStatus, setCameraPermissionStatus] = useState("unknown");
+  const [showPermissionAlert, setShowPermissionAlert] = useState(false);
+  const [cameraInitialized, setCameraInitialized] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+
+  // Prompt text state for positioning guidance
+  const [showPromptText, setShowPromptText] = useState(false);
+  const [promptText, setPromptText] = useState("");
+
   // Attempt tracking state
   const [attemptCount, setAttemptCount] = useState(0);
   const [maxAttemptsReached, setMaxAttemptsReached] = useState(false);
-  const [currentOperation, setCurrentOperation] = useState(""); // 'validation', 'front', 'back'
-
-  const [validationState, setValidationState] = useState({
-    physicalCard: false,
-    movementState: null,
-    movementMessage: "",
-    validationComplete: false,
+  const [currentOperation, setCurrentOperation] = useState(""); // 'front', 'back'
+  const [debugInfo, setDebugInfo] = useState("");
+  const [existingLogoUrl, setExistingLogoUrl] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [formData, setFormData] = useState({
+    displayName: "",
+    logo: null,
   });
-
   // Updated frontScanState to include bankLogoDetected
   const [frontScanState, setFrontScanState] = useState({
     framesBuffered: 0,
     chipDetected: false,
     bankLogoDetected: false,
+    physicalCardDetected: false,
     canProceedToBack: false,
+    motionProgress: null,
+    showMotionPrompt: false,
+    hideMotionPrompt: false,
+    motionPromptTimestamp: null,
+  });
+
+  const [merchantInfo, setMerchantInfo] = useState({
+    display_name: "",
+    display_logo: "",
+    merchant_id: "",
+    loading: false,
+    error: null,
   });
 
   // Refs
@@ -59,9 +89,180 @@ const CardDetectionApp = () => {
   const canvasRef = useRef(null);
   const capturedFrames = useRef([]);
   const countdownIntervalRef = useRef(null);
-  const validationIntervalRef = useRef(null);
   const stopRequestedRef = useRef(false);
   const detectionTimeoutRef = useRef(null);
+
+  const fetchMerchantDisplayInfo = async (merchantId) => {
+    if (!merchantId) {
+      console.log("🚫 No merchantId provided to fetchMerchantDisplayInfo");
+      return;
+    }
+
+    try {
+      console.log("🔍 Fetching merchant display info for:", merchantId);
+      setDebugInfo("Fetching existing display info...");
+
+      const response = await fetch(
+        `https://admin.cardnest.io/api/getmerchantDisplayInfo?merchantId=${encodeURIComponent(
+          merchantId
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("📡 GET API Response status:", response.status);
+
+      let result;
+      const contentType = response.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+      } else {
+        const textResult = await response.text();
+        console.log("Non-JSON response:", textResult);
+
+        try {
+          result = JSON.parse(textResult);
+        } catch {
+          result = { message: textResult };
+        }
+      }
+
+      console.log("📊 GET API Response result:", result);
+
+      // new version to make sure https
+
+      if (response.ok && (result.status === true || result.success === true)) {
+        if (result.data) {
+          const { display_name, display_logo } = result.data;
+
+          if (display_name) {
+            console.log("✅ Setting merchant name:", display_name);
+            setMerchantName(display_name);
+          }
+
+          if (display_logo) {
+            // 🔒 Force HTTPS
+            const safeLogo = display_logo.replace(/^http:\/\//i, "https://");
+            console.log("✅ Setting merchant logo:", safeLogo);
+            setMerchantLogo(safeLogo);
+          }
+
+          setDebugInfo("Existing data loaded successfully");
+        } else {
+          setDebugInfo("No existing data found");
+        }
+      } else {
+        setDebugInfo("No existing data found or API error");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching merchant display info:", error);
+      setDebugInfo(`Error fetching data: ${error.message}`);
+    }
+  };
+
+  // Call fetchMerchantDisplayInfo when Merchant state is updated
+  useEffect(() => {
+    if (Merchant) {
+      console.log("� Merchant ID available, fetching display info:", Merchant);
+      fetchMerchantDisplayInfo(Merchant);
+    }
+  }, [Merchant]);
+
+  // 📹 CAMERA PERMISSION HANDLER
+  // Handles camera permission errors and provides user feedback
+  const handleCameraPermissionError = (errorType) => {
+    console.log('📹 Camera permission error:', errorType);
+    setCameraInitialized(false);
+    
+    switch (errorType) {
+      case 'PERMISSION_DENIED':
+        setCameraPermissionStatus('denied');
+        setCameraError('Camera permission denied. Please enable camera access and try again.');
+        setShowPermissionAlert(true);
+        break;
+      case 'NO_CAMERA':
+        setCameraError('No camera device found. Please ensure your device has a camera.');
+        setShowPermissionAlert(true);
+        break;
+      case 'CAMERA_IN_USE':
+        setCameraError('Camera is currently in use by another application. Please close other camera apps and try again.');
+        setShowPermissionAlert(true);
+        break;
+      case 'GENERIC_ERROR':
+      default:
+        setCameraError('Unable to access camera. Please check permissions and try again.');
+        setShowPermissionAlert(true);
+        break;
+    }
+  };
+
+  // 🔄 REQUEST CAMERA PERMISSIONS
+  // Attempts to request camera permissions again
+  const handleRequestCameraPermission = async () => {
+    console.log('🔄 Requesting camera permissions...');
+    setShowPermissionAlert(false);
+    setCameraError('');
+    
+    try {
+      await requestCameraPermissions(videoRef, handleCameraPermissionError);
+      setCameraInitialized(true);
+      setCameraPermissionStatus('granted');
+      console.log('✅ Camera permissions granted and camera initialized');
+    } catch (error) {
+      console.error('❌ Camera permission request failed:', error);
+      // Error handling is done in handleCameraPermissionError
+    }
+  };
+
+  // 📹 CHECK CAMERA STATUS
+  // Periodically checks if camera is still working (for "Only This Time" detection)
+  // const checkCameraStatus = async () => {
+  //   if (!cameraInitialized) return;
+    
+  //   const isWorking = isCameraWorking(videoRef);
+  //   if (!isWorking) {
+  //     console.log('📹 Camera stopped working, likely permission revoked');
+  //     setCameraInitialized(false);
+  //     setCameraPermissionStatus('prompt');
+  //     setShowPermissionAlert(true);
+  //     setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
+  //   }
+  // };
+
+  const checkCameraStatus = async () => {
+  if (!cameraInitialized) return;
+  
+  const isWorking = isCameraWorking(videoRef);
+  if (!isWorking) {
+    console.log('📹 Camera stopped working, likely permission revoked');
+    setCameraInitialized(false);
+    setCameraPermissionStatus('prompt');
+    setShowPermissionAlert(true);
+    setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
+    return;
+  }
+
+  // Additional WebView permission test
+  try {
+    const testStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 320, height: 240 }
+    });
+    testStream.getTracks().forEach(track => track.stop());
+  } catch (testError) {
+    if (testError.name === 'NotAllowedError') {
+      console.log('📹 Permission test failed - permission expired');
+      setCameraInitialized(false);
+      setCameraPermissionStatus('denied');
+      setShowPermissionAlert(true);
+      setCameraError('Camera permission expired. Please grant camera access again.');
+    }
+  }
+};
 
   // Helper function to handle detection failures with attempt tracking
   const handleDetectionFailure = (message, operation) => {
@@ -72,11 +273,6 @@ const CardDetectionApp = () => {
     if (captureIntervalRef.current) {
       clearInterval(captureIntervalRef.current);
       captureIntervalRef.current = null;
-    }
-
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
-      validationIntervalRef.current = null;
     }
 
     if (countdownIntervalRef.current) {
@@ -136,6 +332,12 @@ const CardDetectionApp = () => {
       const source = urlParams.get("source");
       const demo = urlParams.get("demo");
 
+      // Set merchant ID immediately when found in URL params
+      if (merchantId) {
+        console.log("🏪 Setting merchant ID from URL:", merchantId);
+        setMerchant(merchantId);
+      }
+
       // Method 1: Session-based auth (most secure)
       if (sessionId) {
         console.log("🔐 Found session ID, retrieving auth data securely...");
@@ -161,6 +363,15 @@ const CardDetectionApp = () => {
             setAuthData(authObj);
             window.__WEBVIEW_AUTH__ = authObj;
             setAuthLoading(false);
+
+            // Set merchant from session data if not already set from URL
+            if (sessionData.merchantId) {
+              console.log(
+                "🏪 Setting merchant ID from session:",
+                sessionData.merchantId
+              );
+              setMerchant(sessionData.merchantId);
+            }
 
             // Clean URL (remove session ID)
             const cleanUrl = window.location.pathname;
@@ -206,21 +417,26 @@ const CardDetectionApp = () => {
       // Method 3: Demo mode (development only)
       if (process.env.NODE_ENV === "development" || demo === "true") {
         console.log("🧪 Using development/demo auth data");
+        const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
-          merchantId: "mer000084",
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY2FyZHNlY3VyaXR5c3lzdGVtLTh4ZGV6Lm9uZGlnaXRhbG9jZWFuLmFwcC9hcGkvbWVyY2hhbnRzY2FuL2dlbmVyYXRlVG9rZW4iLCJpYXQiOjE3NTMyNjU1MDYsImV4cCI6MTc1MzI2OTEwNiwibmJmIjoxNzUzMjY1NTA2LCJqdGkiOiJtb1F2ZlNZTTB2eHVnNGlnIiwic3ViIjoibWVyMDAwMDg0IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInNjYW5faWQiOiI3MjBkMjhlYy02MGZmLTQ4YjktOWE0MS1lZDJlM2RhOTgyOTUiLCJtZXJjaGFudF9pZCI6Im1lcjAwMDA4NCIsImVuY3J5cHRpb25fa2V5IjoiSFpzN2tvUzIzMzFGRDhIeCIsImZlYXR1cmVzIjp7ImJhbmtfbG9nbyI6dHJ1ZSwiY2hpcCI6dHJ1ZSwibWFnX3N0cmlwIjp0cnVlLCJzaWdfc3RyaXAiOnRydWUsImhvbG9ncmFtIjp0cnVlLCJjdXN0b21lcl9zZXJ2aWNlIjp0cnVlLCJzeW1tZXRyeSI6dHJ1ZX19.fvZQKsPCUtaDoFaV0xzrS-I1lge2WqCn8WmBaHv2qHQ" ,
-          
-          timestamp: Date.now(),
+          merchantId: demoMerchantId,
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU3NTk0NjE1LCJleHAiOjE3NTc1OTgyMTUsIm5iZiI6MTc1NzU5NDYxNSwianRpIjoiTnpCeVU1ZEhtUkFGR0FIQSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImNmMTUwMGYyLWEyMzAtNDE3Ny04OWQxLTIzMmM1ZmVlMjQ4MSIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.aaEod0q2-EmnHIvMwtzF9mOS_Q77kbx2TxCYgFhynMw",
+            timestamp: Date.now(),
           source: "development_demo",
         };
 
         setAuthData(demoAuthObj);
         window.__WEBVIEW_AUTH__ = demoAuthObj;
         setAuthLoading(false);
-        return;
-      }
 
-      // No auth data found
+        // Set demo merchant ID if not already set from URL
+        if (!merchantId) {
+          console.log("🏪 Setting demo merchant ID:", demoMerchantId);
+          setMerchant(demoMerchantId);
+        }
+
+        return;
+      } // No auth data found
       console.error("❌ No authentication data found");
       console.error("Available URL params:", Array.from(urlParams.entries()));
       setAuthError("No authentication data received from Android app");
@@ -257,21 +473,68 @@ const CardDetectionApp = () => {
   // Initialize camera after auth is ready
   useEffect(() => {
     if (authData && !authLoading) {
-      initializeCamera(videoRef)
-        .then(() => {
-          console.log("📷 Camera initialized successfully");
-        })
-        .catch((error) => {
-          console.error("❌ Camera initialization failed:", error);
-          setErrorMessage(
-            "Camera access failed. Please allow camera permissions."
-          );
+      console.log('📹 Initializing camera with permission handling...');
+      
+      const initCamera = async () => {
+        try {
+          // Check permission status first
+          const permissionStatus = await checkCameraPermissions();
+          setCameraPermissionStatus(permissionStatus);
+          
+          if (permissionStatus === 'denied') {
+            console.log('📹 Camera permission denied');
+            handleCameraPermissionError('PERMISSION_DENIED');
+            return;
+          }
+
+          // FOR WEBVIEW: Force permission test even if status seems OK
+    if (permissionStatus === 'unknown' || permissionStatus === 'granted') {
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240 }
         });
+        testStream.getTracks().forEach(track => track.stop());
+        console.log('✅ WebView permission test passed');
+      } catch (testError) {
+        if (testError.name === 'NotAllowedError') {
+          handleCameraPermissionError('PERMISSION_DENIED');
+          return;
+        }
+      }
+    }
+          // Try to initialize camera
+          await initializeCamera(videoRef, handleCameraPermissionError);
+          setCameraInitialized(true);
+          setCameraPermissionStatus('granted');
+          console.log("✅ Camera initialized successfully");
+          
+          // Start periodic camera status checking (every 30 seconds)
+          const checkInterval = setInterval(checkCameraStatus, 30000);
+          
+          return () => {
+            clearInterval(checkInterval);
+          };
+          
+        } catch (error) {
+          console.error("❌ Camera initialization failed:", error);
+          setCameraInitialized(false);
+          
+          // Don't show generic error message, let handleCameraPermissionError handle it
+          if (error.message !== 'PERMISSION_DENIED' && 
+              error.message !== 'NO_CAMERA' && 
+              error.message !== 'CAMERA_IN_USE') {
+            setErrorMessage("Camera access failed. Please check permissions and try again.");
+          }
+        }
+      };
+
+      initCamera();
     }
 
     return () => {
       cleanupCamera(videoRef);
       clearDetectionTimeout();
+      setCameraInitialized(false);
 
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
@@ -280,48 +543,11 @@ const CardDetectionApp = () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
-
-      if (validationIntervalRef.current) {
-        clearInterval(validationIntervalRef.current);
-      }
     };
   }, [authData, authLoading]);
 
-  // Test API Connection function
-  const testAPIConnection = async () => {
-    if (!authData) return;
 
-    try {
-      const { merchantId, authToken } = authData;
 
-      // Skip API test for demo mode to avoid 422 errors
-      if (authData.source === "development_demo") {
-        console.log("🧪 Skipping API test for demo mode");
-        return;
-      }
-
-      const testUrl = `https://cardapp.hopto.org/detect/${merchantId}/${authToken}`;
-
-      const formData = new FormData();
-      formData.append("test", "connection");
-
-      const response = await fetch(testUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      console.log("✅ API Connection Test:", response.status);
-    } catch (error) {
-      console.error("❌ API Connection Test Failed:", error);
-    }
-  };
-
-  // Call API test when auth data is ready
-  useEffect(() => {
-    if (authData) {
-      testAPIConnection();
-    }
-  }, [authData]);
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -399,40 +625,37 @@ const CardDetectionApp = () => {
       captureIntervalRef.current = null;
     }
 
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
-      validationIntervalRef.current = null;
-    }
-
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
 
-    // Reset states
+    // Reset states immediately
     setDetectionActive(false);
     setIsProcessing(false);
     setCountdown(0);
+    
+    // Hide prompt text when stopping
+    setShowPromptText(false);
 
     // Return to appropriate phase based on current state
-    if (currentPhase === "validation") {
+    if (currentPhase === "front-countdown" || currentPhase === "front") {
       setCurrentPhase("idle");
-      setValidationState({
-        physicalCard: false,
-        movementState: null,
-        movementMessage: "",
-        validationComplete: false,
-      });
-    } else if (currentPhase === "front-countdown" || currentPhase === "front") {
-      setCurrentPhase("ready-for-front");
       setFrontScanState({
         framesBuffered: 0,
         chipDetected: false,
         bankLogoDetected: false,
+        physicalCardDetected: false,
         canProceedToBack: false,
+        motionProgress: null,
+        showMotionPrompt: false,
+        hideMotionPrompt: false,
+        motionPromptTimestamp: null,
       });
     } else if (currentPhase === "back-countdown" || currentPhase === "back") {
       setCurrentPhase("ready-for-back");
+    } else {
+      setCurrentPhase("idle");
     }
   };
 
@@ -455,197 +678,53 @@ const CardDetectionApp = () => {
     }, 1000);
   };
 
-  // Card validation process with timeout handling
-  const startCardValidation = async () => {
+  // Start card scanning directly with front side detection
+  const startCardScanning = async () => {
     if (maxAttemptsReached) return;
 
-    setCurrentPhase("validation");
-    setDetectionActive(true); // THIS IS CRITICAL!
-    setErrorMessage("");
-    stopRequestedRef.current = false;
-    setValidationState({
-      physicalCard: false,
-      movementState: null,
-      movementMessage: "Starting validation...",
-      validationComplete: false,
-    });
-
-    const currentSessionId = `session_${Date.now()}`;
-    setSessionId(currentSessionId);
-
-    let frameNumber = 0;
-    let validationComplete = false;
-    const maxValidationTime = 27000;
-    const startTime = Date.now();
-
-    // Start detection timeout
-    startDetectionTimeout("Validation");
-
-    if (!videoRef.current || videoRef.current.readyState < 2) {
-      handleDetectionFailure("Video not ready for capture", "validation");
+    // 📹 CHECK CAMERA STATUS BEFORE SCANNING
+    if (!cameraInitialized || !isCameraWorking(videoRef)) {
+      console.log('📹 Camera not ready, requesting permissions...');
+      setCameraError('Camera access is required to start scanning. Please enable camera permissions.');
+      setShowPermissionAlert(true);
       return;
     }
 
-    const processValidationFrame = async () => {
-      try {
-        if (
-          stopRequestedRef.current ||
-          validationComplete ||
-          Date.now() - startTime > maxValidationTime
-        ) {
-          return;
-        }
+    // Initialize session
+    const currentSessionId = `session_${Date.now()}`;
+    setSessionId(currentSessionId);
 
-        const frame = await captureFrame(videoRef, canvasRef);
-        if (!frame || frame.size === 0) {
-          return;
-        }
-
-        frameNumber++;
-        setIsProcessing(true);
-
-        const apiResponse = await sendFrameToAPI(
-          frame,
-          "validation",
-          currentSessionId,
-          frameNumber
-        );
-
-        if (stopRequestedRef.current) {
-          setIsProcessing(false);
-          return;
-        }
-
-        // FIXED: Check for validation failures in both message_state AND movement_state
-        if (
-          apiResponse.message_state === "VALIDATION_FAILED" ||
-          apiResponse.movement_state === "VALIDATION_FAILED"
-        ) {
-          validationComplete = true;
-          clearDetectionTimeout();
-
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-
-          setIsProcessing(false);
-
-          // Use appropriate error message based on which field contains the failure
-          const errorMsg =
-            apiResponse.message ||
-            (apiResponse.movement_state === "VALIDATION_FAILED"
-              ? "Card validation failed. Please ensure you have a physical card and try again."
-              : "Validation failed. Please try again.");
-
-          handleDetectionFailure(errorMsg, "validation");
-          return;
-        }
-
-        // FIXED: Check for validation success in both fields
-        if (
-          apiResponse.message_state === "VALIDATION_PASSED" ||
-          apiResponse.movement_state === "VALIDATION_PASSED"
-        ) {
-          validationComplete = true;
-          clearDetectionTimeout();
-
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-
-          setIsProcessing(false);
-            setDetectionActive(false); // ADD THIS LINE!
-
-          // Reset attempt count on successful validation
-          setAttemptCount(0);
-          setCurrentOperation("");
-
-          setTimeout(() => {
-            if (!stopRequestedRef.current) {
-              setCurrentPhase("ready-for-front");
-            }
-          }, 2000);
-          return;
-        }
-
-        // Update validation state - show failure message immediately if movement_state indicates failure
-        const newValidationState = {
-          physicalCard: apiResponse.physical_card || false,
-          movementState: apiResponse.movement_state || null,
-          movementMessage:
-            apiResponse.movement_message ||
-            (apiResponse.movement_state === "VALIDATION_FAILED"
-              ? "Validation Failed"
-              : ""),
-          validationComplete: apiResponse.physical_card || false,
-        };
-
-        setValidationState(newValidationState);
-        setIsProcessing(false);
-
-        // Keep the existing logic for backward compatibility
-        if (
-          newValidationState.validationComplete &&
-          !stopRequestedRef.current
-        ) {
-          validationComplete = true;
-          clearDetectionTimeout();
-
-          if (validationIntervalRef.current) {
-            clearInterval(validationIntervalRef.current);
-          }
-            setDetectionActive(false); // ADD THIS LINE!
-
-
-          // Reset attempt count on successful validation
-          setAttemptCount(0);
-          setCurrentOperation("");
-
-          setTimeout(() => {
-            if (!stopRequestedRef.current) {
-              setCurrentPhase("ready-for-front");
-            }
-          }, 2000);
-        }
-      } catch (error) {
-        console.error("Validation frame processing error:", error);
-        setIsProcessing(false);
-      }
-    };
-
-    processValidationFrame();
-    validationIntervalRef.current = setInterval(processValidationFrame, 1500);
-
-    setTimeout(() => {
-      if (!validationComplete && !stopRequestedRef.current) {
-        if (validationIntervalRef.current) {
-          clearInterval(validationIntervalRef.current);
-        }
-        handleDetectionFailure(
-          "Our intelligence system requires you to try again since the card scan failed",
-          "validation"
-        );
-      }
-    }, maxValidationTime);
-  };
-
-  const startFrontSideDetection = async () => {
-    if (maxAttemptsReached) return;
-
+    // Reset states and start front side detection
+    setErrorMessage("");
+    setAttemptCount(0);
+    setCurrentOperation("");
+    
     setFrontScanState({
       framesBuffered: 0,
       chipDetected: false,
       bankLogoDetected: false,
+      physicalCardDetected: false,
       canProceedToBack: false,
+      motionProgress: null,
+      showMotionPrompt: false,
+      hideMotionPrompt: false,
+      motionPromptTimestamp: null,
     });
 
+    // Show prompt text for front side positioning
+    setPromptText("Position your card's front side in the camera square frame for security scan");
+    setShowPromptText(true);
+
+    // Go directly to front side detection
     setCurrentPhase("front-countdown");
-    setErrorMessage("");
 
     startCountdown(async () => {
       if (stopRequestedRef.current) return;
 
       setCurrentPhase("front");
+      
+      // Hide prompt text when detection starts
+      setShowPromptText(false);
       setDetectionActive(true);
       stopRequestedRef.current = false;
 
@@ -676,113 +755,147 @@ const CardDetectionApp = () => {
     });
   };
 
-  // const startBackSideDetection = async () => {
-  //   if (maxAttemptsReached) return;
+  const startFrontSideDetection = async () => {
+    if (maxAttemptsReached) return;
 
-  //   setCurrentPhase("back-countdown");
-  //   setErrorMessage("");
+    // 📹 CHECK CAMERA STATUS BEFORE SCANNING
+    if (!cameraInitialized || !isCameraWorking(videoRef)) {
+      console.log('📹 Camera not ready for front scanning, requesting permissions...');
+      setCameraError('Camera access is required to scan the front side. Please enable camera permissions.');
+      setShowPermissionAlert(true);
+      return;
+    }
 
-  //   startCountdown(async () => {
-  //     if (stopRequestedRef.current) return;
+    setFrontScanState({
+      framesBuffered: 0,
+      chipDetected: false,
+      bankLogoDetected: false,
+      physicalCardDetected: false,
+      canProceedToBack: false,
+      motionProgress: null,
+      showMotionPrompt: false,
+      hideMotionPrompt: false,
+      motionPromptTimestamp: null,
+    });
 
-  //     setCurrentPhase("back");
-  //     setDetectionActive(true);
-  //     stopRequestedRef.current = false;
+    // Show prompt text for front side positioning
+    setPromptText("Position your card's front side in the camera square frame showing the chip and bank logo clearly");
+    setShowPromptText(true);
 
-  //     // Start detection timeout
-  //     startDetectionTimeout("Back side");
+    setCurrentPhase("front-countdown");
+    setErrorMessage("");
 
-  //     try {
-  //       const finalResult = await captureAndSendFrames("back");
+    startCountdown(async () => {
+      if (stopRequestedRef.current) return;
 
-  //       if (!stopRequestedRef.current) {
-  //         clearDetectionTimeout();
-  //         setDetectionActive(false);
+      setCurrentPhase("front");
+      
+      // Hide prompt text when detection starts
+      setShowPromptText(false);
+      setDetectionActive(true);
+      stopRequestedRef.current = false;
 
-  //         console.log("🔍 Checking final result:", finalResult);
+      // Start detection timeout
+      startDetectionTimeout("Front side");
 
-  //         if (finalResult.encrypted_card_data && finalResult.status) {
-  //           console.log(
-  //             "🎯 Final encrypted response detected - Setting phase to final_response"
-  //           );
-  //           console.log(
-  //             `Status: ${finalResult.status}, Score: ${finalResult.score}`
-  //           );
-  //           setFinalOcrResults(finalResult);
-  //           setCurrentPhase("final_response");
-  //         } else if (finalResult.final_ocr) {
-  //           console.log("📋 Regular OCR results - Setting phase to results");
-  //           setFinalOcrResults(finalResult);
-  //           setCurrentPhase("results");
-  //         } else {
-  //           console.log("⚠️ No final OCR or encrypted data found");
-  //           setFinalOcrResults(finalResult);
-  //           setCurrentPhase("results");
-  //         }
+      try {
+        await captureAndSendFramesFront("front");
 
-  //         // Reset attempt count on successful completion
-  //         setAttemptCount(0);
-  //         setCurrentOperation("");
-  //       }
-  //     } catch (error) {
-  //       console.error("Back side detection failed:", error);
-  //       setDetectionActive(false);
-  //       if (!stopRequestedRef.current) {
-  //         handleDetectionFailure(
-  //           `Back side detection failed: ${error.message}`,
-  //           "back"
-  //         );
-  //       }
-  //     }
-  //   });
-  // };
-
-
-const startBackSideDetection = async () => {
-  if (maxAttemptsReached) return;
-
-  setCurrentPhase("back-countdown");
-  setErrorMessage("");
-
-  startCountdown(async () => {
-    if (stopRequestedRef.current) return;
-
-    setCurrentPhase("back");
-    setDetectionActive(true);
-    stopRequestedRef.current = false;
-
-    startDetectionTimeout("Back side");
-
-    try {
-      const finalResult = await captureAndSendFrames("back");
-
-      if (!stopRequestedRef.current) {
-        clearDetectionTimeout();
-        setDetectionActive(false);
-
-        console.log("🔍 Checking final result:", finalResult);
-
-        if (finalResult?.status === "success" && finalResult?.complete_scan === true) {
-          console.log("✅ Valid back-side scan received, transitioning to 'results'");
-          setFinalOcrResults(finalResult);
-          setCurrentPhase("results");
+        if (!stopRequestedRef.current) {
+          clearDetectionTimeout();
+          setDetectionActive(false);
+          // Reset attempt count on successful front scan
           setAttemptCount(0);
           setCurrentOperation("");
-        } else {
-          console.log("⚠️ Scan result didn't meet success + complete_scan criteria");
-          handleDetectionFailure("Back scan incomplete or failed.", "back");
+          setCurrentPhase("ready-for-back");
+        }
+      } catch (error) {
+        console.error("Front side detection failed:", error);
+        setDetectionActive(false);
+        if (!stopRequestedRef.current) {
+          handleDetectionFailure(
+            `Front side detection failed: ${error.message}`,
+            "front"
+          );
         }
       }
-    } catch (error) {
-      console.error("Back side detection failed:", error);
-      setDetectionActive(false);
-      if (!stopRequestedRef.current) {
-        handleDetectionFailure(`Back side detection failed: ${error.message}`, "back");
-      }
-    }
-  });
-};
+    });
+  };
 
+  const startBackSideDetection = async () => {
+    if (maxAttemptsReached) return;
+
+    // 📹 CHECK CAMERA STATUS BEFORE SCANNING
+    if (!cameraInitialized || !isCameraWorking(videoRef)) {
+      console.log('📹 Camera not ready for back scanning, requesting permissions...');
+      setCameraError('Camera access is required to scan the back side. Please enable camera permissions.');
+      setShowPermissionAlert(true);
+      return;
+    }
+
+    // Show prompt text for back side positioning
+    setPromptText("Position your card's back side in the camera square frame for security scan");
+    setShowPromptText(true);
+
+    setCurrentPhase("back-countdown");
+    setErrorMessage("");
+
+    startCountdown(async () => {
+      if (stopRequestedRef.current) return;
+
+      setCurrentPhase("back");
+      
+      // Hide prompt text when detection starts
+      setShowPromptText(false);
+      setDetectionActive(true);
+      stopRequestedRef.current = false;
+
+      startDetectionTimeout("Back side");
+
+      try {
+        const finalResult = await captureAndSendFrames("back");
+
+        if (!stopRequestedRef.current) {
+          clearDetectionTimeout();
+          setDetectionActive(false);
+
+          console.log("🔍 Checking final result:", finalResult);
+
+          if (
+            finalResult?.status === "success" &&
+            finalResult?.complete_scan === true
+          ) {
+            console.log(
+              "✅ Valid back-side scan received, transitioning to 'results'"
+            );
+            setFinalOcrResults(finalResult);
+            setCurrentPhase("back-complete");
+            setAttemptCount(0);
+            setCurrentOperation("");
+            
+            // Show success message for 3 seconds before showing results
+            setTimeout(() => {
+              setCurrentPhase("results");
+            }, 3000);
+          } else {
+            console.log(
+              "⚠️ Scan result didn't meet success + complete_scan criteria"
+            );
+            handleDetectionFailure("Back scan incomplete or failed.", "back");
+          }
+        }
+      } catch (error) {
+        console.error("Back side detection failed:", error);
+        setDetectionActive(false);
+        if (!stopRequestedRef.current) {
+          handleDetectionFailure(
+            `Back side detection failed: ${error.message}`,
+            "back"
+          );
+        }
+      }
+    });
+  };
 
   const resetApplication = () => {
     stopRequestedRef.current = true;
@@ -795,23 +908,26 @@ const startBackSideDetection = async () => {
     setCountdown(0);
     setErrorMessage("");
     setSessionId("");
+    
+    // Reset prompt text state
+    setShowPromptText(false);
+    setPromptText("");
 
     // Reset attempt tracking completely - this is for "Start New Session"
     setAttemptCount(0);
     setMaxAttemptsReached(false);
     setCurrentOperation("");
 
-    setValidationState({
-      physicalCard: false,
-      movementState: null,
-      movementMessage: "",
-      validationComplete: false,
-    });
     setFrontScanState({
       framesBuffered: 0,
       chipDetected: false,
       bankLogoDetected: false,
+      physicalCardDetected: false,
       canProceedToBack: false,
+      motionProgress: null,
+      showMotionPrompt: false,
+      hideMotionPrompt: false,
+      motionPromptTimestamp: null,
     });
     capturedFrames.current = [];
 
@@ -820,9 +936,6 @@ const startBackSideDetection = async () => {
     }
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
-    }
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
     }
 
     stopRequestedRef.current = false;
@@ -838,23 +951,24 @@ const startBackSideDetection = async () => {
     setIsProcessing(false);
     setCountdown(0);
     setErrorMessage("");
+    
+    // Reset prompt text state
+    setShowPromptText(false);
+    setPromptText("");
 
     // Return to the appropriate phase based on what operation failed
-    if (currentOperation === "validation") {
+    if (currentOperation === "front") {
       setCurrentPhase("idle");
-      setValidationState({
-        physicalCard: false,
-        movementState: null,
-        movementMessage: "",
-        validationComplete: false,
-      });
-    } else if (currentOperation === "front") {
-      setCurrentPhase("ready-for-front");
       setFrontScanState({
         framesBuffered: 0,
         chipDetected: false,
         bankLogoDetected: false,
+        physicalCardDetected: false,
         canProceedToBack: false,
+        motionProgress: null,
+        showMotionPrompt: false,
+        hideMotionPrompt: false,
+        motionPromptTimestamp: null,
       });
     } else if (currentOperation === "back") {
       setCurrentPhase("ready-for-back");
@@ -869,9 +983,6 @@ const startBackSideDetection = async () => {
     }
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
-    }
-    if (validationIntervalRef.current) {
-      clearInterval(validationIntervalRef.current);
     }
 
     stopRequestedRef.current = false;
@@ -889,29 +1000,71 @@ const startBackSideDetection = async () => {
     stopRequestedRef.current = false;
   };
 
-  // Debug component for testing (only shows in development)
-  const DebugAuth = () => {
-    if (!authData || process.env.NODE_ENV === "production") return null;
-
-    return (
-      <div className="fixed top-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded text-xs z-50">
-        <div>Merchant: {authData.merchantId}</div>
-        <div>Token: {authData.authToken.substring(0, 8)}...</div>
-        <div>Source: {authData.source}</div>
-        <div>Time: {new Date(authData.timestamp).toLocaleTimeString()}</div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-700 to-black p-4 sm:p-4">
       <div className="container mx-auto max-w-4xl">
         {/* Debug info (only shows in development) */}
-        {/* <DebugAuth /> */}
+        <div className="flex items-center justify-center bg-white p-2 sm:p-4 rounded-md mb-4 sm:mb-8 shadow">
+          {merchantLogo && (
+            <img
+              // width={50}
+              // height={50}
+              src={merchantLogo}
+              alt="Merchant Logo"
+              className=" h-15 w-15 object-contain mr-3"
+            />
+          )}
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+            {merchantName || "Card Security Scan"}
+          </h1>
+        </div>
 
-        <h1 className="text-xl bg-white p-2 sm:text-2xl lg:text-3xl  rounded-md font-bold text-center mb-4 sm:mb-8 text-gray-900">
-          Card Security Scan
-        </h1>
+        {/* Camera Permission Alert Dialog */}
+        {showPermissionAlert && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-red-600 text-3xl">📹</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Camera Access Required
+                </h3>
+                <p className="text-gray-600 text-sm mb-6">
+                  {cameraError || "Camera permission is required to scan your card. Please enable camera access to continue."}
+                </p>
+                
+                {cameraPermissionStatus === 'denied' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-yellow-800 text-xs">
+<strong>Note:</strong> If you selected &quot;Only This Time&quot; previously, you&apos;ll need to grant permission again.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={handleRequestCameraPermission}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Enable Camera Access
+                  </button>
+                  <button
+                    onClick={() => setShowPermissionAlert(false)}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                
+            <div className="mt-4 text-xs text-gray-500">
+  {`For best experience, select "Allow" when prompted for camera permission`}
+</div>
+
+              </div>
+            </div>
+          </div>
+        )}
 
         <CameraView
           videoRef={videoRef}
@@ -919,21 +1072,21 @@ const startBackSideDetection = async () => {
           currentPhase={currentPhase}
           countdown={countdown}
           detectionActive={detectionActive}
-          validationState={validationState}
           frontScanState={frontScanState}
           isProcessing={isProcessing}
+          showPromptText={showPromptText}
+          promptText={promptText}
         />
 
         <ControlPanel
           currentPhase={currentPhase}
-          onStartValidation={startCardValidation}
+          onStartValidation={startCardScanning}
           onStartFrontScan={startFrontSideDetection}
           onStartBackScan={startBackSideDetection}
           onStop={stopDetection}
           onReset={resetApplication}
           onTryAgain={handleTryAgain}
           onStartOver={handleStartOver}
-          validationState={validationState}
           frontScanState={frontScanState}
           countdown={countdown}
           errorMessage={errorMessage}
@@ -948,7 +1101,6 @@ const startBackSideDetection = async () => {
         <StatusInformation
           currentPhase={currentPhase}
           sessionId={sessionId}
-          validationState={validationState}
           frontScanState={frontScanState}
           detectionActive={detectionActive}
         />

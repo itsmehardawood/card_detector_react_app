@@ -1,6 +1,7 @@
 import React from 'react';
 import DetectionResults from './DetectionResults';
 import FinalResponse from './FinalResponse';
+import { Check } from 'lucide-react';
 
 const ControlPanel = ({
   currentPhase,
@@ -11,7 +12,6 @@ const ControlPanel = ({
   onReset,
   onTryAgain,
   onStartOver,
-  validationState,
   frontScanState,
   countdown,
   errorMessage,
@@ -129,7 +129,7 @@ const ControlPanel = ({
     <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
       <div className="text-center space-y-4">
         
-        {/* Phase: idle - Start Validation */}
+        {/* Phase: idle - Start Card Scanning (Direct to Front) */}
         {currentPhase === 'idle' && (
           <div>
             <button
@@ -137,10 +137,10 @@ const ControlPanel = ({
               disabled={isActive || maxAttemptsReached}
               className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
             >
-              {isActive ? 'Processing...' : 'Start Scanning'}
+              {isActive ? 'Processing...' : 'Start Card Scanning'}
             </button>
 
-            {/* Show alternative payment methods when only one attempt left during validation */}
+            {/* Show alternative payment methods when only one attempt left */}
             {isLastAttempt && (
                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
   <p className="text-sm text-blue-800 mb-4 font-medium">
@@ -168,46 +168,6 @@ const ControlPanel = ({
   </div>
 </div>  
             )}
-          </div>
-        )}
-
-        {/* Phase: validation */}
-        {currentPhase === 'validation' && (
-          <div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 min-h-[40px]">
-              {isProcessing ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
-                  <span className="text-blue-600 text-sm">Processing...</span>
-                </div>
-              ) : (
-                // This empty span ensures space remains but no content shows
-                <span className="invisible">Processing...</span>
-              )}
-            </div>
-
-            <button
-              onClick={onStop}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-            >
-              Stop Card Scan
-            </button>
-          </div>
-        )}
-
-        {/* Phase: ready-for-front */}
-        {currentPhase === 'ready-for-front' && (
-          <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
-              Validation Complete
-            </h3>
-            <button
-              onClick={onStartFrontScan}
-              disabled={isActive || maxAttemptsReached}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
-            >
-              {isActive ? 'Scanning Front...' : 'Scan Front Side'}
-            </button>
           </div>
         )}
 
@@ -241,9 +201,20 @@ const ControlPanel = ({
         {/* Phase: ready-for-back */}
         {currentPhase === 'ready-for-back' && (
           <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-green-600 mb-4">
-              Front Side Complete
-            </h3>
+            {/* Big Success Message for Front Side */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-4 border-green-400 rounded-xl p-6 mb-6 shadow-lg">
+              <div className="flex items-center justify-center mb-3">
+                <div className="bg-green-500 rounded-full p-3 mr-3">
+                <Check className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-xl sm:text-xl font-bold text-green-700">
+                  FRONT SIDE SCAN SUCCESSFUL!
+                </h3>
+              </div>
+              <p className="text-lg text-green-600 font-semibold">
+                Your cards front side has been successfully scanned and processed
+              </p>
+            </div>
             
             <button
               onClick={onStartBackScan}
@@ -265,6 +236,31 @@ const ControlPanel = ({
                 </div>
               )
             )}
+          </div>
+        )}
+
+        {/* Phase: back-complete */}
+        {currentPhase === 'back-complete' && (
+          <div>
+            {/* Big Success Message for Back Side */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-4 border-green-400 rounded-xl p-3 mb-6 shadow-lg">
+         
+              
+              {/* Complete Success Animation */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50  rounded-lg p-4">
+                <div className="flex items-center justify-center">
+                  <div className="bg-green-500 rounded-full p-2 mr-3 animate-pulse">
+                    <Check className="w-5 h-5 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-green-700">
+                    COMPLETE CARD SCAN SUCCESSFUL!
+                  </h4>
+                </div>
+                <p className="text-center text-green-600 font-medium mt-2">
+                  Both sides scanned successfully. Processing results...
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

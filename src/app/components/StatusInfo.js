@@ -3,7 +3,6 @@ import React from 'react';
 const StatusInformation = ({ 
   currentPhase, 
   sessionId, 
-  validationState, 
   frontScanState, 
   detectionActive 
 }) => {
@@ -14,11 +13,6 @@ const StatusInformation = ({
           <span className="font-medium">Phase: {currentPhase.replace('-', ' ').toUpperCase()}</span>
           {sessionId && (
             <span className="font-medium">Session: {sessionId.slice(-8)}</span>
-          )}
-          {currentPhase === 'validation' && (
-            <span className="font-medium">
-              Validation: {validationState.physicalCard ? 'Complete' : 'In Progress'}
-            </span>
           )}
           {currentPhase === 'ready-for-front' && (
             <span className="font-medium">Ready for Front Scan</span>
@@ -33,9 +27,9 @@ const StatusInformation = ({
           )}
         </div>
         <div className="flex items-center gap-3">
-          <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${detectionActive || currentPhase === 'validation' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+          <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${detectionActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
           <span className="font-medium">
-            {detectionActive || currentPhase === 'validation' ? 'Processing...' : 'Ready'}
+            {detectionActive ? 'Processing...' : 'Ready'}
           </span>
         </div>
       </div>

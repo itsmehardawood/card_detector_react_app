@@ -35,6 +35,7 @@ export const useDetection = (
       let frameNumber = 0;
       let timeoutId = null;
       let isComplete = false;
+      let maxFramesReachedTime = null; // Track when we reached 10 frames
       
       const cleanup = () => {
         if (captureIntervalRef.current) {
@@ -53,6 +54,15 @@ export const useDetection = (
           // Check if stop requested or already complete
           if (isComplete || stopRequestedRef.current) return;
           
+          // 📊 FRAME LIMIT: Only capture new frames if under 10 frame limit
+          if (frameNumber >= maxFrames) {
+            if (!maxFramesReachedTime) {
+              maxFramesReachedTime = Date.now();
+              console.log(`📋 Reached ${maxFrames} frames limit - no more captures, waiting for responses...`);
+            }
+            return; // Don't capture more frames, but keep waiting for responses
+          }
+          
           const frame = await captureFrame(videoRef, canvasRef);
           
           if (frame && frame.size > 0) {
@@ -61,6 +71,17 @@ export const useDetection = (
             setIsProcessing(true);
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
+              
+              // 🎯 HIGHEST PRIORITY: Check for status success (regardless of other conditions)
+              if (apiResponse.status === "success") {
+                console.log('🎯 SUCCESS STATUS received! Stopping detection...');
+                console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
+                isComplete = true;
+                cleanup();
+                setCurrentPhase('results');
+                resolve(apiResponse);
+                return;
+              }
               
               // CRITICAL FIX: Check for final encrypted response first
               if (apiResponse.encrypted_card_data && apiResponse.status) {
@@ -72,32 +93,8 @@ export const useDetection = (
                 return;
               }
 
-              // Check for validation states first (for validation phase)
-              if (phase === 'validation') {
-                if (apiResponse.message_state === "VALIDATION_FAILED" || 
-                    apiResponse.movement_state === "VALIDATION_FAILED") {
-                  isComplete = true;
-                  cleanup();
-                  const errorMsg = apiResponse.message || 
-                                  apiResponse.movement_message || 
-                                  'Validation failed. Please try again.';
-                  setErrorMessage(errorMsg);
-                  setCurrentPhase('error');
-                  reject(new Error('Validation failed'));
-                  return;
-                }
-
-                if (apiResponse.message_state === "VALIDATION_PASSED" || 
-                    apiResponse.movement_state === "VALIDATION_PASSED") {
-                  isComplete = true;
-                  cleanup();
-                  setCurrentPhase('ready-for-front');
-                  resolve(apiResponse);
-                  return;
-                }
-              }
-
-              // General validation state check for all phases
+            // Check for validation states first (for validation phase)
+            if (phase === 'validation') {
               if (apiResponse.message_state === "VALIDATION_FAILED" || 
                   apiResponse.movement_state === "VALIDATION_FAILED") {
                 isComplete = true;
@@ -110,17 +107,50 @@ export const useDetection = (
                 reject(new Error('Validation failed'));
                 return;
               }
-              
-              lastApiResponse = apiResponse;
+
+              if (apiResponse.message_state === "VALIDATION_PASSED" || 
+                  apiResponse.movement_state === "VALIDATION_PASSED") {
+                isComplete = true;
+                cleanup();
+                setCurrentPhase('ready-for-front');
+                resolve(apiResponse);
+                return;
+              }
+            }
+
+            // General validation state check for all phases - Skip for front/back phases
+            if (phase !== 'front' && phase !== 'back' && 
+                (apiResponse.message_state === "VALIDATION_FAILED" || 
+                 apiResponse.movement_state === "VALIDATION_FAILED")) {
+              isComplete = true;
+              cleanup();
+              const errorMsg = apiResponse.message || 
+                              apiResponse.movement_message || 
+                              'Validation failed. Please try again.';
+              setErrorMessage(errorMsg);
+              setCurrentPhase('error');
+              reject(new Error('Validation failed'));
+              return;
+            }              lastApiResponse = apiResponse;
               setIsProcessing(false);
 
               // Update front scan state for front phase
               if (phase === 'front') {
+                // Log motion progress for debugging
+                if (apiResponse.motion_progress) {
+                  console.log(`🎯 Motion progress detected: ${apiResponse.motion_progress}`);
+                }
+                
                 setFrontScanState({
                   framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
                   chipDetected: apiResponse.chip || false,
                   bankLogoDetected: apiResponse.bank_logo || false,
-                  canProceedToBack: false
+                  physicalCardDetected: apiResponse.physical_card || false,
+                  canProceedToBack: false,
+                  motionProgress: apiResponse.motion_progress || null,
+                  showMotionPrompt: apiResponse.motion_progress === "1/2",
+                  hideMotionPrompt: apiResponse.motion_progress === "2/2",
+                  motionPromptTimestamp: apiResponse.motion_progress === "1/2" ? Date.now() : null
                 });
               }
               
@@ -168,11 +198,11 @@ export const useDetection = (
                   return;
                 }
               } else if (phase === 'front' && bufferedFrames >= 6) {
-                // For front side, check if we have chip or bank logo
-                if (apiResponse.chip || apiResponse.bank_logo) {
+                // For front side, check if we have chip or bank logo AND physical_card is true
+                if ((apiResponse.chip || apiResponse.bank_logo) && apiResponse.physical_card === true) {
                   isComplete = true;
                   cleanup();
-                  console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}`);
+                  console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
                   resolve(apiResponse);
                   return;
                 }
@@ -184,10 +214,13 @@ export const useDetection = (
                 return;
               }
               
-              if (frameNumber >= maxFrames) {
+              // 📊 FALLBACK: Only stop due to frame limit if we've been waiting a while
+              // This ensures we give time for API responses after sending 10 frames
+              if (frameNumber >= maxFrames && maxFramesReachedTime && 
+                  (Date.now() - maxFramesReachedTime > 10000)) { // Wait 10 seconds after last frame
+                console.log(`📋 Waited 10 seconds after ${maxFrames} frames - stopping with last response`);
                 isComplete = true;
                 cleanup();
-                console.log(`Reached maximum ${maxFrames} frames for ${phase} side`);
                 
                 if (lastApiResponse) {
                   if (phase === 'back') {
@@ -264,7 +297,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 120000);
+      }, 45000);
     });
   };
 
@@ -294,7 +327,7 @@ const captureAndSendFrames = async (phase) => {
   
   let lastApiResponse = null;
   const maxFrames = 40;
-  const requiredBackSideFeatures = 3;
+  const requiredBackSideFeatures = 2;  //replaced it to 2 before it was 3
   
   if (!videoRef.current || videoRef.current.readyState < 2) {
     throw new Error('Video not ready for capture');
@@ -304,6 +337,7 @@ const captureAndSendFrames = async (phase) => {
     let frameNumber = 0;
     let timeoutId = null;
     let isComplete = false;
+    let maxFramesReachedTime = null; // Track when we reached 10 frames
     
     const cleanup = () => {
       if (captureIntervalRef.current) {
@@ -322,7 +356,24 @@ const captureAndSendFrames = async (phase) => {
         // Check if stopped
         if (isComplete || stopRequestedRef.current) return;
         
+        // 📊 FRAME LIMIT: Only capture new frames if under 10 frame limit
+        if (frameNumber >= maxFrames && !maxFramesReachedTime) {
+          console.log(`📋 Reached ${maxFrames} frames limit - stopping new captures but continuing to wait for responses...`);
+          maxFramesReachedTime = Date.now();
+          return; // Don't capture more frames, but keep waiting for responses
+        }
+
+        if (maxFramesReachedTime) {
+          return; // Don't send more frames, just wait for responses
+        }
+        
+        // Double-check before frame capture to prevent race conditions
+        if (isComplete || stopRequestedRef.current) return;
+        
         const frame = await captureFrame(videoRef, canvasRef);
+        
+        // Check again after async frame capture to prevent race conditions
+        if (isComplete || stopRequestedRef.current) return;
         
         if (frame && frame.size > 0) {
           frameNumber++;
@@ -331,7 +382,17 @@ const captureAndSendFrames = async (phase) => {
           try {
             const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
             
-            // 🎯 HIGHEST PRIORITY: Check for final encrypted response with complete_scan
+            // 🎯 HIGHEST PRIORITY: Check for status success (regardless of complete_scan)
+            if (apiResponse.status === "success") {
+              console.log('🎯 SUCCESS STATUS received! Stopping all detection immediately...');
+              console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
+              isComplete = true;
+              cleanup();
+              resolve(apiResponse);
+              return;
+            }
+            
+            // 🎯 SECOND PRIORITY: Check for final encrypted response with complete_scan
             if (apiResponse.status === "success" && apiResponse.complete_scan === true) {
               isComplete = true;
               cleanup();
@@ -376,9 +437,10 @@ const captureAndSendFrames = async (phase) => {
               }
             }
 
-            // General validation state check for all phases
-            if (apiResponse.message_state === "VALIDATION_FAILED" || 
-                apiResponse.movement_state === "VALIDATION_FAILED") {
+            // General validation state check for all phases - Skip for front/back phases
+            if (phase !== 'front' && phase !== 'back' && 
+                (apiResponse.message_state === "VALIDATION_FAILED" || 
+                 apiResponse.movement_state === "VALIDATION_FAILED")) {
               isComplete = true;
               cleanup();
               const errorMsg = apiResponse.message || 
@@ -392,6 +454,26 @@ const captureAndSendFrames = async (phase) => {
             
             lastApiResponse = apiResponse;
             setIsProcessing(false);
+            
+            // Update front scan state for front phase
+            if (phase === 'front') {
+              // Log motion progress for debugging
+              if (apiResponse.motion_progress) {
+                console.log(`🎯 Motion progress detected: ${apiResponse.motion_progress}`);
+              }
+              
+              setFrontScanState({
+                framesBuffered: apiResponse.buffer_info?.front_frames_buffered || frameNumber,
+                chipDetected: apiResponse.chip || false,
+                bankLogoDetected: apiResponse.bank_logo || false,
+                physicalCardDetected: apiResponse.physical_card || false,
+                canProceedToBack: false,
+                motionProgress: apiResponse.motion_progress || null,
+                showMotionPrompt: apiResponse.motion_progress === "1/2",
+                hideMotionPrompt: apiResponse.motion_progress === "2/2",
+                motionPromptTimestamp: apiResponse.motion_progress === "1/2" ? Date.now() : null
+              });
+            }
             
             const bufferedFrames = phase === 'front' 
               ? apiResponse.buffer_info?.front_frames_buffered 
@@ -437,11 +519,11 @@ const captureAndSendFrames = async (phase) => {
                 // Continue processing, don't resolve yet - wait for complete_scan
               }
             } else if (phase === 'front' && bufferedFrames >= 6) {
-              // For front side, check if we have chip or bank logo
-              if (apiResponse.chip || apiResponse.bank_logo) {
+              // For front side, check if we have chip or bank logo AND physical_card is true
+              if ((apiResponse.chip || apiResponse.bank_logo) && apiResponse.physical_card === true) {
                 isComplete = true;
                 cleanup();
-                console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}`);
+                console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
                 resolve(apiResponse);
                 return;
               }
@@ -453,10 +535,16 @@ const captureAndSendFrames = async (phase) => {
               return;
             }
             
+            // 📊 FALLBACK: Only stop due to frame limit if we've been waiting a while  
+            // This ensures we give time for API responses after sending 10 frames
             if (frameNumber >= maxFrames) {
-              isComplete = true;
-              cleanup();
-              console.log(`Reached maximum ${maxFrames} frames for ${phase} side`);
+              // If we just reached the limit, wait 10 seconds for responses
+              if (maxFramesReachedTime && (Date.now() - maxFramesReachedTime) < 10000) {
+                console.log(`📋 Waiting for responses (${Math.round((Date.now() - maxFramesReachedTime) / 1000)}s since reaching frame limit)...`);
+                return; // Keep waiting
+              }
+              
+              console.log(`📋 Reached ${maxFrames} frames and waited - checking if we have sufficient response...`);
               
               if (lastApiResponse) {
                 // Check one final time for complete_scan response
@@ -499,7 +587,18 @@ const captureAndSendFrames = async (phase) => {
           }
         }
       } catch (error) {
+        // Check if we're completed/stopped - if so, ignore errors and exit gracefully
+        if (isComplete || stopRequestedRef.current) {
+          console.log('🛑 Frame processing stopped due to completion state');
+          return;
+        }
+        
         console.error('Error in frame processing:', error);
+        
+        // Only set processing to false if we're not completed
+        if (!isComplete) {
+          setIsProcessing(false);
+        }
       }
     };
     
@@ -549,7 +648,7 @@ const captureAndSendFrames = async (phase) => {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 120000);
+    }, 40000);
   });
 };
 
