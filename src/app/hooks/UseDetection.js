@@ -159,7 +159,7 @@ export const useDetection = (
                 : apiResponse.buffer_info?.back_frames_buffered;
               
               // MOVED: Check validation ONLY after we have sufficient buffered frames
-              if (bufferedFrames >= 6) {
+              if (bufferedFrames >= 4) {
                 // NOW check front_valid for front phase (only after 6 frames buffered)
                 if (phase === 'front' && apiResponse.front_valid === false) {
                   console.log('❌ Front validation failed after 6 frames - front_valid is false');
@@ -227,12 +227,12 @@ export const useDetection = (
                     const buffered = lastApiResponse.buffer_info?.back_frames_buffered || 0;
                     const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
                     
-                    if (buffered >= 6 && count < 3) {
+                    if (buffered >= 4 && count < 3) {
                       const missingCount = 3 - count;
                       setErrorMessage(`Insufficient back side features detected. Found ${count} out of required 3 features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible showing magnetic strip, signature strip, hologram, and customer service details.`);
                       setCurrentPhase('error');
                       reject(new Error(`Insufficient back side features: only ${count}/3 detected`));
-                    } else if (buffered < 6) {
+                    } else if (buffered < 4) {
                       setErrorMessage('Failed to capture sufficient frames for back side. Please try again.');
                       setCurrentPhase('error');
                       reject(new Error('Insufficient frames captured for back side'));
@@ -279,11 +279,11 @@ export const useDetection = (
               const bufferedFrames = lastApiResponse.buffer_info?.back_frames_buffered || 0;
               const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
               
-              if (bufferedFrames >= 6 && count >= 3) {
+              if (bufferedFrames >= 4 && count >= 3) {
                 setCurrentPhase('results');
                 resolve(lastApiResponse);
                 return;
-              } else if (bufferedFrames >= 6 && count < 3) {
+              } else if (bufferedFrames >= 4 && count < 3) {
                 setErrorMessage(`Timeout: Insufficient back side features detected. Found ${count} out of required 3 features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible.`);
                 setCurrentPhase('error');
                 reject(new Error(`Timeout: Insufficient back side features detected`));
@@ -480,7 +480,7 @@ const captureAndSendFrames = async (phase) => {
               : apiResponse.buffer_info?.back_frames_buffered;
             
             // Check validation ONLY after we have sufficient buffered frames
-            if (bufferedFrames >= 6) {
+            if (bufferedFrames >= 4) {
               // Check front_valid for front phase (only after 6 frames buffered)
               if (phase === 'front' && apiResponse.front_valid === false) {
                 console.log('❌ Front validation failed after 6 frames - front_valid is false');
@@ -558,12 +558,12 @@ const captureAndSendFrames = async (phase) => {
                   const buffered = lastApiResponse.buffer_info?.back_frames_buffered || 0;
                   const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
                   
-                  if (buffered >= 6 && count < requiredBackSideFeatures) {
+                  if (buffered >= 4 && count < requiredBackSideFeatures) {
                     const missingCount = requiredBackSideFeatures - count;
                     setErrorMessage(`Insufficient back side features detected. Found ${count} out of required ${requiredBackSideFeatures} features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible showing magnetic strip, signature strip, hologram, and customer service details.`);
                     setCurrentPhase('error');
                     reject(new Error(`Insufficient back side features: only ${count}/${requiredBackSideFeatures} detected`));
-                  } else if (buffered < 6) {
+                  } else if (buffered < 4) {
                     setErrorMessage('Failed to capture sufficient frames for back side. Please try again.');
                     setCurrentPhase('error');
                     reject(new Error('Insufficient frames captured for back side'));
@@ -629,12 +629,12 @@ const captureAndSendFrames = async (phase) => {
             const bufferedFrames = lastApiResponse.buffer_info?.back_frames_buffered || 0;
             const { count, detectedFeatures } = countBackSideFeatures(lastApiResponse);
             
-            if (bufferedFrames >= 6 && count >= requiredBackSideFeatures) {
+            if (bufferedFrames >= 4 && count >= requiredBackSideFeatures) {
               // Features sufficient but no complete_scan - should retry front side
               console.log('⚠️ Timeout: Features sufficient but complete_scan not received');
               reject(new Error('Timeout: Back scan incomplete - complete_scan not received'));
               return;
-            } else if (bufferedFrames >= 6 && count < requiredBackSideFeatures) {
+            } else if (bufferedFrames >= 4 && count < requiredBackSideFeatures) {
               setErrorMessage(`Timeout: Insufficient back side features detected. Found ${count} out of required ${requiredBackSideFeatures} features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible.`);
               setCurrentPhase('error');
               reject(new Error(`Timeout: Insufficient back side features detected`));
