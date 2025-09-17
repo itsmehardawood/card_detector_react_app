@@ -160,9 +160,9 @@ export const useDetection = (
               
               // MOVED: Check validation ONLY after we have sufficient buffered frames
               if (bufferedFrames >= 4) {
-                // NOW check front_valid for front phase (only after 6 frames buffered)
+                // NOW check front_valid for front phase (only after 4 frames buffered)
                 if (phase === 'front' && apiResponse.front_valid === false) {
-                  console.log('❌ Front validation failed after 6 frames - front_valid is false');
+                  console.log('❌ Front validation failed after 4 frames - front_valid is false');
                   isComplete = true;
                   cleanup();
                   if (handleDetectionFailure) {
@@ -172,9 +172,9 @@ export const useDetection = (
                   return;
                 }
 
-                // NOW check back_valid for back phase (only after 6 frames buffered)
+                // NOW check back_valid for back phase (only after 4 frames buffered)
                 if (phase === 'back' && apiResponse.back_valid === false) {
-                  console.log('❌ Back validation failed after 6 frames - back_valid is false');
+                  console.log('❌ Back validation failed after 4 frames - back_valid is false');
                   isComplete = true;
                   cleanup();
                   if (handleDetectionFailure) {
@@ -186,30 +186,30 @@ export const useDetection = (
               }
               
               // For back side, check both sufficient frames and required features
-              if (phase === 'back' && bufferedFrames >= 6) {
+              if (phase === 'back' && bufferedFrames >= 4) {
                 const { count, detectedFeatures } = countBackSideFeatures(apiResponse);
                 
                 if (count >= 3) { // requiredBackSideFeatures
                   isComplete = true;
                   cleanup();
-                  console.log(`Back side complete - 6 frames buffered and ${count} features detected: ${detectedFeatures.join(', ')}`);
+                  console.log(`Back side complete - 4 frames buffered and ${count} features detected: ${detectedFeatures.join(', ')}`);
                   setCurrentPhase('results');
                   resolve(apiResponse);
                   return;
                 }
-              } else if (phase === 'front' && bufferedFrames >= 6) {
+              } else if (phase === 'front' && bufferedFrames >= 4) {
                 // For front side, check if we have chip or bank logo AND physical_card is true
                 if ((apiResponse.chip || apiResponse.bank_logo) && apiResponse.physical_card === true) {
                   isComplete = true;
                   cleanup();
-                  console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
+                  console.log(`Front side complete - 4 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
                   resolve(apiResponse);
                   return;
                 }
-              } else if (phase !== 'back' && phase !== 'front' && phase !== 'validation' && bufferedFrames >= 6) {
+              } else if (phase !== 'back' && phase !== 'front' && phase !== 'validation' && bufferedFrames >= 4) {
                 isComplete = true;
                 cleanup();
-                console.log(`${phase} side complete - 6 frames buffered`);
+                console.log(`${phase} side complete - 4 frames buffered`);
                 resolve(apiResponse);
                 return;
               }
@@ -481,9 +481,9 @@ const captureAndSendFrames = async (phase) => {
             
             // Check validation ONLY after we have sufficient buffered frames
             if (bufferedFrames >= 4) {
-              // Check front_valid for front phase (only after 6 frames buffered)
+              // Check front_valid for front phase (only after 4 frames buffered)
               if (phase === 'front' && apiResponse.front_valid === false) {
-                console.log('❌ Front validation failed after 6 frames - front_valid is false');
+                console.log('❌ Front validation failed after 4 frames - front_valid is false');
                 isComplete = true;
                 cleanup();
                 if (handleDetectionFailure) {
@@ -493,9 +493,9 @@ const captureAndSendFrames = async (phase) => {
                 return;
               }
 
-              // Check back_valid for back phase (only after 6 frames buffered)
+              // Check back_valid for back phase (only after 4 frames buffered)
               if (phase === 'back' && apiResponse.back_valid === false) {
-                console.log('❌ Back validation failed after 6 frames - back_valid is false');
+                console.log('❌ Back validation failed after 4 frames - back_valid is false');
                 isComplete = true;
                 cleanup();
                 if (handleDetectionFailure) {
@@ -508,7 +508,7 @@ const captureAndSendFrames = async (phase) => {
             
             // 🔄 MODIFIED: For back side, ONLY complete on feature detection if we haven't received complete_scan yet
             // This prevents premature completion before the final encrypted response
-            if (phase === 'back' && bufferedFrames >= 6) {
+            if (phase === 'back' && bufferedFrames >= 4) {
               const { count, detectedFeatures } = countBackSideFeatures(apiResponse);
               
               // Only consider completing based on features if we've reached max frames
@@ -518,19 +518,19 @@ const captureAndSendFrames = async (phase) => {
                 console.log(`Features found: ${count} (${detectedFeatures.join(', ')})`);
                 // Continue processing, don't resolve yet - wait for complete_scan
               }
-            } else if (phase === 'front' && bufferedFrames >= 6) {
+            } else if (phase === 'front' && bufferedFrames >= 4) {
               // For front side, check if we have chip or bank logo AND physical_card is true
               if ((apiResponse.chip || apiResponse.bank_logo) && apiResponse.physical_card === true) {
                 isComplete = true;
                 cleanup();
-                console.log(`Front side complete - 6 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
+                console.log(`Front side complete - 4 frames buffered with chip: ${apiResponse.chip}, bank_logo: ${apiResponse.bank_logo}, physical_card: ${apiResponse.physical_card}`);
                 resolve(apiResponse);
                 return;
               }
-            } else if (phase !== 'back' && phase !== 'front' && phase !== 'validation' && bufferedFrames >= 6) {
+            } else if (phase !== 'back' && phase !== 'front' && phase !== 'validation' && bufferedFrames >= 4) {
               isComplete = true;
               cleanup();
-              console.log(`${phase} side complete - 6 frames buffered`);
+              console.log(`${phase} side complete - 4 frames buffered`);
               resolve(apiResponse);
               return;
             }

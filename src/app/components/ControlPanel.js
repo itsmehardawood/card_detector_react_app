@@ -226,12 +226,12 @@ const ControlPanel = ({
             
             {/* Show warning only if we have explicit false or missing requirements */}
             {frontScanState && (
-              (!frontScanState.chipDetected || !frontScanState.bankLogoDetected || (frontScanState.framesBuffered < 6)) && (
+              (!frontScanState.chipDetected || !frontScanState.bankLogoDetected || (frontScanState.framesBuffered < 4)) && (
                 <div className="mt-4">
                   <p className="text-sm text-orange-600">
                     Requirements: Chip ✓{frontScanState.chipDetected ? ' Complete' : ' Missing'}, 
                     Logo ✓{frontScanState.bankLogoDetected ? ' Complete' : ' Missing'}, 
-                    Frames ✓{frontScanState.framesBuffered >= 6 ? ' Complete' : ` ${frontScanState.framesBuffered || 0}/6`}
+                    Frames ✓{frontScanState.framesBuffered >= 4 ? ' Complete' : ` ${frontScanState.framesBuffered || 0}/4`}
                   </p>
                 </div>
               )
