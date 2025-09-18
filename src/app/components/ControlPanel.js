@@ -225,7 +225,7 @@ const ControlPanel = ({
             </button>
             
             {/* Show warning only if we have explicit false or missing requirements */}
-            {frontScanState && (
+            {/* {frontScanState && (
               (!frontScanState.chipDetected || !frontScanState.bankLogoDetected || (frontScanState.framesBuffered < 4)) && (
                 <div className="mt-4">
                   <p className="text-sm text-orange-600">
@@ -235,7 +235,7 @@ const ControlPanel = ({
                   </p>
                 </div>
               )
-            )}
+            )} */}
           </div>
         )}
 

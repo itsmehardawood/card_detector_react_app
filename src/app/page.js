@@ -420,8 +420,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4MTEwNDc1LCJleHAiOjE3NTgxMTQwNzUsIm5iZiI6MTc1ODExMDQ3NSwianRpIjoiMHlWTGQwTFpDU0VkZ2FxZSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjFlY2ViZWVjLTYwYWMtNGI2Zi05ZDZkLTk3ZDVhNDk2ZTgyNiIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.vfy4r920ob6RprqL44btl41aALaMTaOpx9nsq-UU_lU",
-            timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4MTg0MjcyLCJleHAiOjE3NTgxODc4NzIsIm5iZiI6MTc1ODE4NDI3MiwianRpIjoiTlQ5TDJ4VnJ5Nld6eHBUeiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImI0YWFhOGNmLTQ1MGEtNGY0NC1iNWIyLWZiNzU2YjkzYWY3YSIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.VkUxUjkjqzaU76mYDHXBkFlqc7dLb8ppQ53COo00fc4",
+             timestamp: Date.now(),
           source: "development_demo",
         };
 
