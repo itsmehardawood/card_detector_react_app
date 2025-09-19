@@ -16,8 +16,9 @@ export const sendFrameToAPI = async (
     throw new Error("Missing auth credentials.");
   }
 
+
   // testing ngrok
-  // const apiUrl = `https://9c9c05748484.ngrok-free.app/detect/${merchantId}`;
+  // const apiUrl = `https://6ba20b315312.ngrok-free.app/detect/${merchantId}`;
 
   // dev server
   // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
