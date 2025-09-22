@@ -18,11 +18,15 @@ export const useDetection = (
   const captureIntervalRef = useRef(null);
 
   // Capture and send frames for front side with chip and bank logo detection
-  const captureAndSendFramesFront = async (phase) => {
-    const currentSessionId = sessionId || `session_${Date.now()}`;
-    if (!sessionId) {
-      setSessionId(currentSessionId);
+  const captureAndSendFramesFront = async (phase, providedSessionId = null) => {
+    const currentSessionId = providedSessionId || sessionId;
+    console.log("🔍 captureAndSendFramesFront called with phase:", phase, "sessionId:", currentSessionId);
+    
+    if (!currentSessionId) {
+      throw new Error('No session ID provided. Session must be initialized before detection.');
     }
+    
+    console.log("Using session ID:", currentSessionId);
     
     let lastApiResponse = null;
     const maxFrames = 70;
@@ -133,6 +137,17 @@ export const useDetection = (
               return;
             }              lastApiResponse = apiResponse;
               setIsProcessing(false);
+
+              // Check for fake card detection in front phase
+              if (phase === 'front' && apiResponse.fake_card === true) {
+                console.log('🚫 Fake card detected in front phase - stopping detection');
+                isComplete = true;
+                cleanup();
+                setErrorMessage('Fake card detected. Please use original card.');
+                setCurrentPhase('error');
+                reject(new Error('Fake card detected'));
+                return;
+              }
 
               // Update front scan state for front phase
               if (phase === 'front') {
@@ -319,11 +334,15 @@ export const useDetection = (
   // Regular capture function for back side with feature validation
 
   // Regular capture function for back side with feature validation
-const captureAndSendFrames = async (phase) => {
-  const currentSessionId = sessionId || `session_${Date.now()}`;
-  if (!sessionId) {
-    setSessionId(currentSessionId);
+const captureAndSendFrames = async (phase, providedSessionId = null) => {
+  const currentSessionId = providedSessionId || sessionId;
+  console.log("🔍 captureAndSendFrames called with phase:", phase, "sessionId:", currentSessionId);
+  
+  if (!currentSessionId) {
+    throw new Error('No session ID provided. Session must be initialized before detection.');
   }
+  
+  console.log("Using session ID:", currentSessionId);
   
   let lastApiResponse = null;
   const maxFrames = 40;
@@ -454,6 +473,17 @@ const captureAndSendFrames = async (phase) => {
             
             lastApiResponse = apiResponse;
             setIsProcessing(false);
+            
+            // Check for fake card detection in front phase
+            if (phase === 'front' && apiResponse.fake_card === true) {
+              console.log('🚫 Fake card detected in front phase - stopping detection');
+              isComplete = true;
+              cleanup();
+              setErrorMessage('Fake card detected. Please use original card.');
+              setCurrentPhase('error');
+              reject(new Error('Fake card detected'));
+              return;
+            }
             
             // Update front scan state for front phase
             if (phase === 'front') {

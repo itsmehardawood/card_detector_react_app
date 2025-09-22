@@ -91,6 +91,7 @@ const CardDetectionApp = () => {
   const countdownIntervalRef = useRef(null);
   const stopRequestedRef = useRef(false);
   const detectionTimeoutRef = useRef(null);
+  const currentSessionRef = useRef(null);
 
   const fetchMerchantDisplayInfo = async (merchantId) => {
     if (!merchantId) {
@@ -219,20 +220,6 @@ const CardDetectionApp = () => {
     }
   };
 
-  // 📹 CHECK CAMERA STATUS
-  // Periodically checks if camera is still working (for "Only This Time" detection)
-  // const checkCameraStatus = async () => {
-  //   if (!cameraInitialized) return;
-    
-  //   const isWorking = isCameraWorking(videoRef);
-  //   if (!isWorking) {
-  //     console.log('📹 Camera stopped working, likely permission revoked');
-  //     setCameraInitialized(false);
-  //     setCameraPermissionStatus('prompt');
-  //     setShowPermissionAlert(true);
-  //     setCameraError('Camera access lost. This may happen when "Only This Time" permission expires. Please grant camera access again.');
-  //   }
-  // };
 
   const checkCameraStatus = async () => {
   if (!cameraInitialized) return;
@@ -420,8 +407,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4MjgwNDkwLCJleHAiOjE3NTgyODQwOTAsIm5iZiI6MTc1ODI4MDQ5MCwianRpIjoiUFBiRmROZnFyZ3hNUDNoayIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImFkYzgzOGUzLTQwMDQtNGRhMC1iOGM1LWMyYjA1YjQzMDc1NiIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.D7yYezyqs6VAFMPnzxEg0zMUvyebvg8ZKac9orRHkoM",
-           timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4NTQzMzI0LCJleHAiOjE3NTg1NDY5MjQsIm5iZiI6MTc1ODU0MzMyNCwianRpIjoiZXV3T0FGeXJ4SE45ZnZBaiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjU2M2ZlYTM2LTRlZTItNDcxOC04YTlhLTkzNTQzNDM4NTk3YyIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.Pzr_Su9VPQuX0e20fjH3LiTH0z1DEIMtS-i5iyyOnKg",
+                  timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -680,7 +667,8 @@ const CardDetectionApp = () => {
 
   // Start card scanning directly with front side detection
   const startCardScanning = async () => {
-    if (maxAttemptsReached) return;
+    console.log("🚀 startCardScanning called, maxAttemptsReached:", maxAttemptsReached, "detectionActive:", detectionActive);
+    if (maxAttemptsReached || detectionActive) return;
 
     // 📹 CHECK CAMERA STATUS BEFORE SCANNING
     if (!cameraInitialized || !isCameraWorking(videoRef)) {
@@ -732,7 +720,7 @@ const CardDetectionApp = () => {
       startDetectionTimeout("Front side");
 
       try {
-        await captureAndSendFramesFront("front");
+        await captureAndSendFramesFront("front", currentSessionId);
 
         if (!stopRequestedRef.current) {
           clearDetectionTimeout();
@@ -756,7 +744,8 @@ const CardDetectionApp = () => {
   };
 
   const startFrontSideDetection = async () => {
-    if (maxAttemptsReached) return;
+    console.log("🚀 startFrontSideDetection called, maxAttemptsReached:", maxAttemptsReached, "detectionActive:", detectionActive);
+    if (maxAttemptsReached || detectionActive) return;
 
     // 📹 CHECK CAMERA STATUS BEFORE SCANNING
     if (!cameraInitialized || !isCameraWorking(videoRef)) {
@@ -799,7 +788,7 @@ const CardDetectionApp = () => {
       startDetectionTimeout("Front side");
 
       try {
-        await captureAndSendFramesFront("front");
+        await captureAndSendFramesFront("front", sessionId);
 
         if (!stopRequestedRef.current) {
           clearDetectionTimeout();
@@ -853,7 +842,7 @@ const CardDetectionApp = () => {
       startDetectionTimeout("Back side");
 
       try {
-        const finalResult = await captureAndSendFrames("back");
+        const finalResult = await captureAndSendFrames("back", sessionId);
 
         if (!stopRequestedRef.current) {
           clearDetectionTimeout();

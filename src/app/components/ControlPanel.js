@@ -52,7 +52,7 @@ const ControlPanel = ({
         <div className="text-center">
           <div className="mb-4">
             <h3 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Security Scan Detection Failed</h3>
-            <p className="text-red-700 mb-3">Please ensure the card is in a clear view.</p>
+            <p className="text-red-700 mb-3">{errorMessage || 'Please ensure the card is in a clear view.'}</p>
             
             {!maxAttemptsReached && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
