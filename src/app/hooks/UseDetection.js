@@ -67,6 +67,20 @@ export const useDetection = (
             return; // Don't capture more frames, but keep waiting for responses
           }
           
+          // 🛡️ SAFETY CHECK: Verify video and canvas are still available
+          if (!videoRef.current || !canvasRef.current) {
+            console.log('🛡️ Video or canvas no longer available - stopping detection gracefully');
+            isComplete = true;
+            cleanup();
+            // Don't reject - just resolve with last response if available
+            if (lastApiResponse) {
+              resolve(lastApiResponse);
+            } else {
+              reject(new Error('Component cleanup detected during frame capture'));
+            }
+            return;
+          }
+          
           const frame = await captureFrame(videoRef, canvasRef);
           
           if (frame && frame.size > 0) {
@@ -76,9 +90,9 @@ export const useDetection = (
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
               
-              // 🎯 HIGHEST PRIORITY: Check for status success (regardless of other conditions)
-              if (apiResponse.status === "success") {
-                console.log('🎯 SUCCESS STATUS received! Stopping detection...');
+              // 🎯 HIGHEST PRIORITY: Check for status success OR already_completed (regardless of other conditions)
+              if (apiResponse.status === "success" || apiResponse.status === "already_completed") {
+                console.log('🎯 SUCCESS/ALREADY_COMPLETED STATUS received! Stopping detection...');
                 console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
                 isComplete = true;
                 cleanup();
@@ -282,9 +296,11 @@ export const useDetection = (
           if (lastApiResponse) {
             console.log('Timeout reached, checking final conditions...');
             
-            // CRITICAL FIX: Check for final encrypted response in timeout
-            if (lastApiResponse.encrypted_card_data && lastApiResponse.status) {
-              console.log('🎯 Final encrypted response found in timeout handler');
+            // CRITICAL FIX: Check for final encrypted response OR already_completed in timeout
+            if ((lastApiResponse.encrypted_card_data && lastApiResponse.status) || 
+                lastApiResponse.status === "success" || 
+                lastApiResponse.status === "already_completed") {
+              console.log('🎯 Final encrypted response or success/already_completed found in timeout handler');
               setCurrentPhase('results');
               resolve(lastApiResponse);
               return;
@@ -389,6 +405,20 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
         // Double-check before frame capture to prevent race conditions
         if (isComplete || stopRequestedRef.current) return;
         
+        // 🛡️ SAFETY CHECK: Verify video and canvas are still available
+        if (!videoRef.current || !canvasRef.current) {
+          console.log('🛡️ Video or canvas no longer available - stopping detection gracefully');
+          isComplete = true;
+          cleanup();
+          // Don't reject - just resolve with last response if available
+          if (lastApiResponse) {
+            resolve(lastApiResponse);
+          } else {
+            reject(new Error('Component cleanup detected during frame capture'));
+          }
+          return;
+        }
+        
         const frame = await captureFrame(videoRef, canvasRef);
         
         // Check again after async frame capture to prevent race conditions
@@ -401,9 +431,9 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
           try {
             const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
             
-            // 🎯 HIGHEST PRIORITY: Check for status success (regardless of complete_scan)
-            if (apiResponse.status === "success") {
-              console.log('🎯 SUCCESS STATUS received! Stopping all detection immediately...');
+            // 🎯 HIGHEST PRIORITY: Check for status success OR already_completed (regardless of complete_scan)
+            if (apiResponse.status === "success" || apiResponse.status === "already_completed") {
+              console.log('🎯 SUCCESS/ALREADY_COMPLETED STATUS received! Stopping all detection immediately...');
               console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
               isComplete = true;
               cleanup();
@@ -429,47 +459,8 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
               console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}`);
               resolve(apiResponse);
               return;
-            }
-
-            // Check for validation states first (for validation phase)
-            if (phase === 'validation') {
-              if (apiResponse.message_state === "VALIDATION_FAILED" || 
-                  apiResponse.movement_state === "VALIDATION_FAILED") {
-                isComplete = true;
-                cleanup();
-                const errorMsg = apiResponse.message || 
-                                apiResponse.movement_message || 
-                                'Validation failed. Please try again.';
-                setErrorMessage(errorMsg);
-                setCurrentPhase('error');
-                reject(new Error('Validation failed'));
-                return;
-              }
-
-              if (apiResponse.message_state === "VALIDATION_PASSED" || 
-                  apiResponse.movement_state === "VALIDATION_PASSED") {
-                isComplete = true;
-                cleanup();
-                setCurrentPhase('ready-for-front');
-                resolve(apiResponse);
-                return;
-              }
-            }
-
-            // General validation state check for all phases - Skip for front/back phases
-            if (phase !== 'front' && phase !== 'back' && 
-                (apiResponse.message_state === "VALIDATION_FAILED" || 
-                 apiResponse.movement_state === "VALIDATION_FAILED")) {
-              isComplete = true;
-              cleanup();
-              const errorMsg = apiResponse.message || 
-                              apiResponse.movement_message || 
-                              'Validation failed. Please try again.';
-              setErrorMessage(errorMsg);
-              setCurrentPhase('error');
-              reject(new Error('Validation failed'));
-              return;
-            }
+            }       
+   
             
             lastApiResponse = apiResponse;
             setIsProcessing(false);
@@ -641,14 +632,16 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
         if (lastApiResponse) {
           console.log('Timeout reached, checking final conditions...');
           
-          // PRIORITY CHECK: Final complete_scan response even on timeout
-          if (lastApiResponse.status === "success" && lastApiResponse.complete_scan === true) {
-            console.log('🎯 Complete scan found in timeout handler');
+          // PRIORITY CHECK: Final success, already_completed, or complete_scan response even on timeout
+          if (lastApiResponse.status === "success" || 
+              lastApiResponse.status === "already_completed" || 
+              (lastApiResponse.status === "success" && lastApiResponse.complete_scan === true)) {
+            console.log('🎯 Success/already_completed/complete scan found in timeout handler');
             resolve(lastApiResponse);
             return;
           }
           
-          // Check for final encrypted response even on timeout
+          // Check for final encrypted response OR already_completed even on timeout
           if (lastApiResponse.encrypted_card_data && lastApiResponse.status) {
             console.log('🎉 Final encrypted response found on timeout');
             resolve(lastApiResponse);
