@@ -407,8 +407,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken:"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4NzIxNTk2LCJleHAiOjE3NTg3MjUxOTYsIm5iZiI6MTc1ODcyMTU5NiwianRpIjoiQ0RHNFBEWkRTNXQyc3Z2WCIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjIyNTE0Y2Y3LTVhYzAtNDJlZi1iNTA0LWIzZjFjZGY1YTUyMSIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.XHMpaJ_xJfnHznpNc9SwWmVWnXewQ959f35fJiQ1tsc",
-            timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4NzI5OTc2LCJleHAiOjE3NTg3MzM1NzYsIm5iZiI6MTc1ODcyOTk3NiwianRpIjoiM0I2c0FvVW9HU3A3R1ozQiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImEwNzE5YTRmLTVmM2ItNGU0OC1iMTIzLWJjNTM0MTQ2M2VlMyIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.brB9pLSiiHqQpdjFZi3CfDBhMDQzoe18SpdZy1t5iKQ",
+             timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -901,6 +901,15 @@ const CardDetectionApp = () => {
         console.error("Back side detection failed:", error);
         setDetectionActive(false);
         if (!stopRequestedRef.current) {
+          // For validation failures, handleDetectionFailure is already called in UseDetection
+          // but we still need to handle other types of errors
+          if (error.message === "Back validation failed") {
+            console.log("🔍 Validation failure error caught - handleDetectionFailure already called with attempt counting");
+            // handleDetectionFailure was already called in UseDetection hook, so just return
+            return;
+          }
+          
+          // Handle other types of detection failures
           handleDetectionFailure(
             `Back side detection failed: ${error.message}`,
             "back"
@@ -956,10 +965,23 @@ const CardDetectionApp = () => {
 
   // New function specifically for "Try Again" - keeps attempt count
   const handleTryAgain = () => {
+    console.log("🔄 handleTryAgain called - stopping all detection processes");
+    
+    // CRITICAL: Stop all detection immediately
     stopRequestedRef.current = true;
     clearDetectionTimeout();
 
-    // Don't reset attempt count here - keep it for tracking
+    // Clean up intervals FIRST
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+      captureIntervalRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    // Reset all states immediately
     setDetectionActive(false);
     setIsProcessing(false);
     setCountdown(0);
@@ -969,9 +991,17 @@ const CardDetectionApp = () => {
     setShowPromptText(false);
     setPromptText("");
 
-    // Return to the appropriate phase based on what operation failed
-    if (currentOperation === "front") {
-      setCurrentPhase("idle");
+    // For back side validation failures, reset session ID and return to idle to restart from front
+    if (currentOperation === "back") {
+      console.log("🔄 Back side validation failed - resetting session ID and returning to idle");
+      setSessionId(""); // Reset session ID to force new session
+      
+      // Use setTimeout to ensure all async processes have stopped
+      setTimeout(() => {
+        setCurrentPhase("idle");
+        stopRequestedRef.current = false; // Reset after transition
+      }, 100);
+      
       setFrontScanState({
         framesBuffered: 0,
         chipDetected: false,
@@ -983,22 +1013,31 @@ const CardDetectionApp = () => {
         hideMotionPrompt: false,
         motionPromptTimestamp: null,
       });
-    } else if (currentOperation === "back") {
-      setCurrentPhase("ready-for-back");
+    } else if (currentOperation === "front") {
+      setTimeout(() => {
+        setCurrentPhase("idle");
+        stopRequestedRef.current = false; // Reset after transition
+      }, 100);
+      
+      setFrontScanState({
+        framesBuffered: 0,
+        chipDetected: false,
+        bankLogoDetected: false,
+        physicalCardDetected: false,
+        canProceedToBack: false,
+        motionProgress: null,
+        showMotionPrompt: false,
+        hideMotionPrompt: false,
+        motionPromptTimestamp: null,
+      });
     } else {
-      // Default fallback
-      setCurrentPhase("idle");
+      // Default fallback - reset session ID for safety
+      setSessionId("");
+      setTimeout(() => {
+        setCurrentPhase("idle");
+        stopRequestedRef.current = false; // Reset after transition
+      }, 100);
     }
-
-    // Clean up intervals
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-    }
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-
-    stopRequestedRef.current = false;
   };
 
   const handleStartOver = () => {

@@ -187,6 +187,33 @@ export const useDetection = (
                 ? apiResponse.buffer_info?.front_frames_buffered 
                 : apiResponse.buffer_info?.back_frames_buffered;
               
+              // Check for back side validation failure specifically
+              if (phase === 'back' && apiResponse.validation_failed === true) {
+                console.log('❌ Back side validation failed - validation_failed is true');
+                console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
+                console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
+                
+                // CRITICAL: Stop all processing immediately
+                stopRequestedRef.current = true;
+                isComplete = true;
+                cleanup();
+                
+                const errorMsg = apiResponse.validation_reason || 
+                                apiResponse.message || 
+                                'Back side validation failed. Please ensure the card back is clearly visible and try again.';
+                
+                // Use handleDetectionFailure to maintain attempt counting
+                if (handleDetectionFailure) {
+                  handleDetectionFailure(errorMsg, 'back');
+                } else {
+                  setErrorMessage(errorMsg);
+                  setCurrentPhase('error');
+                }
+                
+                reject(new Error('Back validation failed'));
+                return;
+              }
+
               // MOVED: Check validation ONLY after we have sufficient buffered frames
               if (bufferedFrames >= 4) {
                 // NOW check front_valid for front phase (only after 4 frames buffered)
@@ -328,7 +355,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 20000);
+      }, 10000);
     });
   };
 
@@ -440,7 +467,9 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
               resolve(apiResponse);
               return;
             }
-            
+
+
+                    
             // 🎯 SECOND PRIORITY: Check for final encrypted response with complete_scan
             if (apiResponse.status === "success" && apiResponse.complete_scan === true) {
               isComplete = true;
@@ -500,6 +529,31 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
               ? apiResponse.buffer_info?.front_frames_buffered 
               : apiResponse.buffer_info?.back_frames_buffered;
             
+            // Check for back side validation failure specifically
+            if (phase === 'back' && apiResponse.validation_failed === true) {
+              console.log('❌ Back side validation failed - validation_failed is true');
+              console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
+              console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
+              
+              // CRITICAL: Stop all processing immediately
+              stopRequestedRef.current = true;
+              isComplete = true;
+              cleanup();
+              
+              const errorMsg = 'Back side validation failed. Please ensure the card back is clearly visible and try again.';
+              
+              // Use handleDetectionFailure to maintain attempt counting
+              if (handleDetectionFailure) {
+                handleDetectionFailure(errorMsg, 'back');
+              } else {
+                setErrorMessage(errorMsg);
+                setCurrentPhase('error');
+              }
+              
+              reject(new Error('Back validation failed'));
+              return;
+            }
+
             // Check validation ONLY after we have sufficient buffered frames
             if (bufferedFrames >= 4) {
               // Check front_valid for front phase (only after 4 frames buffered)
@@ -671,7 +725,7 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 20000);
+    }, 10000);
   });
 };
 
