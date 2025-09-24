@@ -21,7 +21,7 @@ import Image from "next/image";
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 5;
-const DETECTION_TIMEOUT = 40000; // 40 seconds
+const DETECTION_TIMEOUT = 15000; // 15 seconds
 
 const CardDetectionApp = () => {
   // Authentication state
@@ -407,8 +407,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4NTQzMzI0LCJleHAiOjE3NTg1NDY5MjQsIm5iZiI6MTc1ODU0MzMyNCwianRpIjoiZXV3T0FGeXJ4SE45ZnZBaiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjU2M2ZlYTM2LTRlZTItNDcxOC04YTlhLTkzNTQzNDM4NTk3YyIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.Pzr_Su9VPQuX0e20fjH3LiTH0z1DEIMtS-i5iyyOnKg",
-                  timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU4NjkzMzEyLCJleHAiOjE3NTg2OTY5MTIsIm5iZiI6MTc1ODY5MzMxMiwianRpIjoiSldCeEFhSjFPYllhckZRcSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjUwMTViM2E4LTAyMmQtNDU5Yy1iN2Q1LTQ2MTJmOWE5MGJhNCIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.8rFtPAhC-dtI0PwxMy14opV003AyG5j5a8Hdmnug_6Y",
+            timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -678,9 +678,15 @@ const CardDetectionApp = () => {
       return;
     }
 
-    // Initialize session
-    const currentSessionId = `session_${Date.now()}`;
-    setSessionId(currentSessionId);
+    // Initialize session ONLY if not already set
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      currentSessionId = `session_${Date.now()}`;
+      setSessionId(currentSessionId);
+      console.log('🆔 Created new session ID:', currentSessionId);
+    } else {
+      console.log('🆔 Using existing session ID:', currentSessionId);
+    }
 
     // Reset states and start front side detection
     setErrorMessage("");
@@ -755,6 +761,16 @@ const CardDetectionApp = () => {
       return;
     }
 
+    // Ensure we have a session ID
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      currentSessionId = `session_${Date.now()}`;
+      setSessionId(currentSessionId);
+      console.log('🆔 Created new session ID for front scan:', currentSessionId);
+    } else {
+      console.log('🆔 Using existing session ID for front scan:', currentSessionId);
+    }
+
     setFrontScanState({
       framesBuffered: 0,
       chipDetected: false,
@@ -788,7 +804,7 @@ const CardDetectionApp = () => {
       startDetectionTimeout("Front side");
 
       try {
-        await captureAndSendFramesFront("front", sessionId);
+        await captureAndSendFramesFront("front", currentSessionId);
 
         if (!stopRequestedRef.current) {
           clearDetectionTimeout();
@@ -821,6 +837,15 @@ const CardDetectionApp = () => {
       setShowPermissionAlert(true);
       return;
     }
+
+    // Ensure we have the same session ID from front scan
+    if (!sessionId) {
+      console.error('❌ No session ID available for back scan! This should not happen.');
+      setErrorMessage('Session error occurred. Please restart the scanning process.');
+      setCurrentPhase('error');
+      return;
+    }
+    console.log('🆔 Using session ID for back scan:', sessionId);
 
     // Show prompt text for back side positioning
     setPromptText("Position your card's back side in the camera square frame for security scan");

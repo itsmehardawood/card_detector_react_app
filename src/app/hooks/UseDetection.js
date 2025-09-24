@@ -29,7 +29,7 @@ export const useDetection = (
     console.log("Using session ID:", currentSessionId);
     
     let lastApiResponse = null;
-    const maxFrames = 70;
+    const maxFrames = 15;
     
     if (!videoRef.current || videoRef.current.readyState < 2) {
       throw new Error('Video not ready for capture');
@@ -230,10 +230,10 @@ export const useDetection = (
               }
               
               // 📊 FALLBACK: Only stop due to frame limit if we've been waiting a while
-              // This ensures we give time for API responses after sending 10 frames
+              // This ensures we give time for API responses after sending 15 frames
               if (frameNumber >= maxFrames && maxFramesReachedTime && 
-                  (Date.now() - maxFramesReachedTime > 10000)) { // Wait 10 seconds after last frame
-                console.log(`📋 Waited 10 seconds after ${maxFrames} frames - stopping with last response`);
+                  (Date.now() - maxFramesReachedTime > 3000)) { // Wait 3 seconds after last frame
+                console.log(`📋 Waited 3 seconds after ${maxFrames} frames - stopping with last response`);
                 isComplete = true;
                 cleanup();
                 
@@ -312,7 +312,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 45000);
+      }, 15000);
     });
   };
 
@@ -345,7 +345,7 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
   console.log("Using session ID:", currentSessionId);
   
   let lastApiResponse = null;
-  const maxFrames = 40;
+  const maxFrames = 15;
   const requiredBackSideFeatures = 2;  //replaced it to 2 before it was 3
   
   if (!videoRef.current || videoRef.current.readyState < 2) {
@@ -566,10 +566,10 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
             }
             
             // 📊 FALLBACK: Only stop due to frame limit if we've been waiting a while  
-            // This ensures we give time for API responses after sending 10 frames
+            // This ensures we give time for API responses after sending 15 frames
             if (frameNumber >= maxFrames) {
-              // If we just reached the limit, wait 10 seconds for responses
-              if (maxFramesReachedTime && (Date.now() - maxFramesReachedTime) < 10000) {
+              // If we just reached the limit, wait 3 seconds for responses
+              if (maxFramesReachedTime && (Date.now() - maxFramesReachedTime) < 3000) {
                 console.log(`📋 Waiting for responses (${Math.round((Date.now() - maxFramesReachedTime) / 1000)}s since reaching frame limit)...`);
                 return; // Keep waiting
               }
@@ -600,7 +600,7 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
                   } else {
                     // Features were sufficient but no complete_scan - this should retry
                     console.log('⚠️ Back side features sufficient but no complete_scan received');
-                    reject(new Error('Back scan incomplete - complete_scan not received'));
+                    reject(new Error('Back scan incomplete '));
                   }
                 } else {
                   resolve(lastApiResponse);
@@ -662,7 +662,7 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
             if (bufferedFrames >= 4 && count >= requiredBackSideFeatures) {
               // Features sufficient but no complete_scan - should retry front side
               console.log('⚠️ Timeout: Features sufficient but complete_scan not received');
-              reject(new Error('Timeout: Back scan incomplete - complete_scan not received'));
+              reject(new Error('Timeout: Back scan incomplete'));
               return;
             } else if (bufferedFrames >= 4 && count < requiredBackSideFeatures) {
               setErrorMessage(`Timeout: Insufficient back side features detected. Found ${count} out of required ${requiredBackSideFeatures} features (${detectedFeatures.join(', ')}). Please ensure the card's back side is clearly visible.`);
@@ -678,7 +678,7 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 40000);
+    }, 15000);
   });
 };
 
