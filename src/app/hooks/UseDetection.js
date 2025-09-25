@@ -315,7 +315,7 @@ export const useDetection = (
       };
       
       processFrame();
-      captureIntervalRef.current = setInterval(processFrame, 1500);
+      captureIntervalRef.current = setInterval(processFrame, 1000); //was 1500ms
       
       timeoutId = setTimeout(() => {
         if (!isComplete) {
@@ -673,12 +673,12 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
         // Only set processing to false if we're not completed
         if (!isComplete) {
           setIsProcessing(false);
-        }
+        } 
       }
     };
     
     processFrame();
-    captureIntervalRef.current = setInterval(processFrame, 1500);
+    captureIntervalRef.current = setInterval(processFrame, 800); //was 1500ms
     
     timeoutId = setTimeout(() => {
       if (!isComplete) {
