@@ -530,29 +530,107 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
               : apiResponse.buffer_info?.back_frames_buffered;
             
             // Check for back side validation failure specifically
-            if (phase === 'back' && apiResponse.validation_failed === true) {
-              console.log('❌ Back side validation failed - validation_failed is true');
-              console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
-              console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
+            // if (phase === 'back' && apiResponse.validation_failed === true) {
+            //   console.log('❌ Back side validation failed - validation_failed is true');
+            //   console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
+            //   console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
               
-              // CRITICAL: Stop all processing immediately
-              stopRequestedRef.current = true;
-              isComplete = true;
-              cleanup();
+            //   // CRITICAL: Stop all processing immediately
+            //   stopRequestedRef.current = true;
+            //   isComplete = true;
+            //   cleanup();
               
-              const errorMsg = 'Back side validation failed. Please ensure the card back is clearly visible and try again.';
+            //   const errorMsg = 'Back side validation failed. Please ensure the card back is clearly visible and try again.';
               
-              // Use handleDetectionFailure to maintain attempt counting
-              if (handleDetectionFailure) {
-                handleDetectionFailure(errorMsg, 'back');
-              } else {
-                setErrorMessage(errorMsg);
-                setCurrentPhase('error');
-              }
+            //   // Use handleDetectionFailure to maintain attempt counting
+            //   if (handleDetectionFailure) {
+            //     handleDetectionFailure(errorMsg, 'back');
+            //   } else {
+            //     setErrorMessage(errorMsg);
+            //     setCurrentPhase('error');
+            //   }
               
-              reject(new Error('Back validation failed'));
-              return;
-            }
+            //   reject(new Error('Back validation failed'));
+            //   return;
+            // }
+
+
+
+
+            //  else if (phase === 'back' && apiResponse.validation_failed === true && apiResponse.validation_reason === "brand_mismatch") {
+            //   console.log('❌ Back side validation failed - validation_failed is true');
+            //   console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
+            //   console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
+              
+            //   // CRITICAL: Stop all processing immediately
+            //   stopRequestedRef.current = true;
+            //   isComplete = true;
+            //   cleanup();
+
+            //   const errorMsg = 'Oops, after numerous security scan detection your card issuer verification details do not match the bank records - please try again. Thank you!!';
+            //   // Use handleDetectionFailure to maintain attempt counting
+            //   if (handleDetectionFailure) {
+            //     handleDetectionFailure(errorMsg, 'back');
+            //   } else {
+            //     setErrorMessage(errorMsg);
+            //     setCurrentPhase('error');
+            //   }
+              
+            //   reject(new Error('Back validation failed'));
+            //   return;
+            // }
+
+            
+
+
+
+if (phase === 'back' && apiResponse.validation_failed === true && apiResponse.validation_reason === "brand_mismatch") {
+  console.log('❌ Back side validation failed - brand mismatch');
+  console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
+  console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
+
+  // CRITICAL: Stop all processing immediately
+  stopRequestedRef.current = true;
+  isComplete = true;
+  cleanup();
+
+  const errorMsg = 'Oops, after numerous security scan detection your card issuer verification details do not match the bank records - please try again. Thank you!!';
+  
+  if (handleDetectionFailure) {
+    handleDetectionFailure(errorMsg, 'back');
+  } else {
+    setErrorMessage(errorMsg);
+    setCurrentPhase('error');
+  }
+
+  reject(new Error('Back validation failed - brand mismatch'));
+  return;
+}
+
+else if (phase === 'back' && apiResponse.validation_failed === true) {
+  console.log('❌ Back side validation failed - generic case');
+  console.log('📋 Validation reason:', apiResponse.validation_reason || 'Not provided');
+  console.log('📋 Missing fields:', apiResponse.missing_fields || 'None specified');
+
+  // CRITICAL: Stop all processing immediately
+  stopRequestedRef.current = true;
+  isComplete = true;
+  cleanup();
+
+  const errorMsg = 'Back side validation failed. Please ensure the card back is clearly visible and try again.';
+  
+  if (handleDetectionFailure) {
+    handleDetectionFailure(errorMsg, 'back');
+  } else {
+    setErrorMessage(errorMsg);
+    setCurrentPhase('error');
+  }
+
+  reject(new Error('Back validation failed - generic'));
+  return;
+}
+
+
 
             // Check validation ONLY after we have sufficient buffered frames
             if (bufferedFrames >= 4) {

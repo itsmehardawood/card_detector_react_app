@@ -18,7 +18,7 @@ export const sendFrameToAPI = async (
 
 
   // testing ngrok
-  // const apiUrl = `https://6180e3ad7559.ngrok-free.app/detect/${merchantId}`;
+  // const apiUrl = `https://a5fa9d8915f1.ngrok-free.app/detect/${merchantId}`;
 
   // dev server
   // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
