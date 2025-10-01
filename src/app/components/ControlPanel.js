@@ -201,8 +201,18 @@ const ControlPanel = ({
         {/* Phase: ready-for-back */}
         {currentPhase === 'ready-for-back' && (
           <div>
+
+              <button
+              onClick={onStartBackScan}
+              disabled={isActive || maxAttemptsReached}
+              className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
+            >
+              {isActive ? 'Scanning Back...' : 'Scan Back Side'}
+            </button>
+
+
             {/* Big Success Message for Front Side */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-4 border-green-400 rounded-xl p-6 mb-6 shadow-lg">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-4 border-green-400 rounded-xl p-6  mt-5 mb-6 shadow-lg">
               <div className="flex items-center justify-center mb-3">
                 <div className="bg-green-500 rounded-full p-3 mr-3">
                 <Check className="w-5 h-5 text-white" />
@@ -216,26 +226,9 @@ const ControlPanel = ({
               </p>
             </div>
             
-            <button
-              onClick={onStartBackScan}
-              disabled={isActive || maxAttemptsReached}
-              className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-medium text-base sm:text-lg transition-colors"
-            >
-              {isActive ? 'Scanning Back...' : 'Scan Back Side'}
-            </button>
+          
             
-            {/* Show warning only if we have explicit false or missing requirements */}
-            {/* {frontScanState && (
-              (!frontScanState.chipDetected || !frontScanState.bankLogoDetected || (frontScanState.framesBuffered < 4)) && (
-                <div className="mt-4">
-                  <p className="text-sm text-orange-600">
-                    Requirements: Chip ✓{frontScanState.chipDetected ? ' Complete' : ' Missing'}, 
-                    Logo ✓{frontScanState.bankLogoDetected ? ' Complete' : ' Missing'}, 
-                    Frames ✓{frontScanState.framesBuffered >= 4 ? ' Complete' : ` ${frontScanState.framesBuffered || 0}/4`}
-                  </p>
-                </div>
-              )
-            )} */}
+      
           </div>
         )}
 
