@@ -355,7 +355,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 10000);
+      }, 13000);
     });
   };
 
@@ -752,7 +752,7 @@ else if (phase === 'back' && apiResponse.validation_failed === true) {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 10000);
+    }, 17000);
   });
 };
 
