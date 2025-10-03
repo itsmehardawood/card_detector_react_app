@@ -21,7 +21,7 @@ import Image from "next/image";
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 5;
-const DETECTION_TIMEOUT = 15000; // 15 seconds
+const DETECTION_TIMEOUT = 150000; // 150 seconds
 
 const CardDetectionApp = () => {
   // Authentication state

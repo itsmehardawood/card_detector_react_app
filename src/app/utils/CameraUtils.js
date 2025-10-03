@@ -501,7 +501,7 @@ const captureFrameInternal = (videoRef, canvasRef, resolve, reject) => {
         console.error('❌ Failed to create blob from canvas');
         reject(new Error('Failed to create blob from canvas'));
       }
-    }, 'image/jpeg', 0.7); // High quality JPEG
+    }, 'image/jpeg', 1.0); // High quality JPEG
     
   } catch (error) {
     // 🔓 RELEASE CAPTURE LOCK on error
