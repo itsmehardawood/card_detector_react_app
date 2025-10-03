@@ -325,8 +325,8 @@ export const requestCameraPermissions = async (videoRef, onPermissionDenied = nu
     // Try with minimal constraints first to trigger permission prompt
     const testStream = await navigator.mediaDevices.getUserMedia({
       video: { 
-        width: 640, 
-        height: 480,
+       width: 320, 
+        height: 240,
         facingMode: 'environment'
       }
     });
@@ -475,8 +475,8 @@ const captureFrameInternal = (videoRef, canvasRef, resolve, reject) => {
     
     const ctx = canvas.getContext('2d');
     
-    canvas.width = 640;
-    canvas.height = 480;
+  canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
     
     console.log('📷 Starting frame capture:', {
       videoWidth: video.videoWidth,
@@ -501,7 +501,7 @@ const captureFrameInternal = (videoRef, canvasRef, resolve, reject) => {
         console.error('❌ Failed to create blob from canvas');
         reject(new Error('Failed to create blob from canvas'));
       }
-    }, 'image/jpeg', 1.0); // High quality JPEG
+    }, 'image/jpeg', 0.9); // High quality JPEG
     
   } catch (error) {
     // 🔓 RELEASE CAPTURE LOCK on error
