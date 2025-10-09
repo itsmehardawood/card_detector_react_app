@@ -55,7 +55,7 @@ const CameraView = ({
   const getPhaseInstructions = () => {
     switch (currentPhase) {
       case "idle":
-        return 'Position your card in camera view showing the frontside, avoid dark place and move the camera closer to the card.';
+        return 'We recommend putting the card on a flat surface, avoiding dark places, and positioning your card in the camera view for better scanning.';
       case "front-countdown":
         return `Get ready to scan front side... ${countdown}`;
       case "front":
