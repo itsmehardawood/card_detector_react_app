@@ -13,6 +13,7 @@ const CameraView = ({
 }) => {
   const [showMotionPrompt, setShowMotionPrompt] = useState(false);
   const [motionPromptShown, setMotionPromptShown] = useState(false);
+  const [showInitialPrompt, setShowInitialPrompt] = useState(true);
 
   // Handle motion prompt display with 3-second timer - show only once
   useEffect(() => {
@@ -52,10 +53,19 @@ const CameraView = ({
       setShowMotionPrompt(false);
     }
   }, [frontScanState?.framesBuffered]);
+
+  // Handle initial prompt visibility - hide when scanning starts (countdown begins)
+  useEffect(() => {
+    if (currentPhase === 'idle') {
+      setShowInitialPrompt(true);
+    } else {
+      setShowInitialPrompt(false);
+    }
+  }, [currentPhase]);
   const getPhaseInstructions = () => {
     switch (currentPhase) {
       case "idle":
-        return 'We recommend putting the card on a flat surface, avoiding dark places, and positioning your card in the camera view for better scanning.';
+        return 'Carefully read our guidelines or recommendation information for better scanning.';
       case "front-countdown":
         return `Get ready to scan front side... ${countdown}`;
       case "front":
@@ -247,6 +257,27 @@ const CameraView = ({
     </div>
   </div>
 )}
+
+        {/* Initial Scanning Recommendation Prompt - Show only in idle phase */}
+        {showInitialPrompt && currentPhase === 'idle' && (
+          <div className="absolute bottom-4 left-4 right-4 z-30">
+            <div className="bg-black/90 backdrop-blur-sm rounded-lg p-4 text-center shadow-lg border-2 border-blue-500">
+              
+              {/* Title */}
+              <div className="text-blue-600 text-lg font-semibold mb-2">
+               Guidelines for better scanning
+              </div>
+
+              {/* Message */}
+              <div className="text-gray-100 text-sm leading-relaxed mb-3">
+                We recommend putting the card on a flat surface, avoiding dark places, and positioning your card in the camera view for better scanning.
+              </div>
+
+      
+
+            </div>
+          </div>
+        )}
 
 
       </div>

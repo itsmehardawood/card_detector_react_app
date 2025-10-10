@@ -78,33 +78,7 @@ const ControlPanel = ({
           </div>
           
           {/* Show alternative payment methods when only one attempt left */}
-          {isLastAttempt && (
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-  <p className="text-sm text-blue-800 mb-4 font-medium">
-    Alternative Payment Options:
-  </p>
-  <div className="flex flex-wrap justify-center items-center gap-4">
-    {/* Google Pay */}
-    <div className="flex items-center bg-white rounded-xl p-3 px-4 shadow-md border hover:shadow-lg transition">
-      <svg width="36" height="20" viewBox="0 0 48 20" fill="none" className="shrink-0">
-        <path d="M19.7 10c0-2.8-2.2-5-5-5s-5 2.2-5 5 2.2 5 5 5 5-2.2 5-5zm-7.5 0c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5-2.5-1.1-2.5-2.5z" fill="#4285F4"/>
-        <path d="M27.2 7.5h-4.8V5h4.8c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z" fill="#34A853"/>
-        <path d="M27.2 12.5h-4.8V10h4.8c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z" fill="#FBBC04"/>
-        <path d="M22.4 15h4.8c1.4 0 2.5-1.1 2.5-2.5v-5c0-1.4-1.1-2.5-2.5-2.5h-4.8v10z" fill="#EA4335"/>
-      </svg>
-      <span className="ml-3 text-base font-semibold text-gray-800">Google Pay</span>
-    </div>
-
-    {/* Apple Pay */}
-    <div className="flex items-center bg-white rounded-xl p-3 px-4 shadow-md border hover:shadow-lg transition">
-      <svg width="36" height="20" viewBox="0 0 48 20" fill="none" className="shrink-0">
-        <path d="M11.5 1c-1.1 0-2.1.4-2.8 1.1-.7.7-1.1 1.7-1.1 2.8 0 .2 0 .4.1.6 1.2-.1 2.4-.6 3.2-1.4.8-.8 1.2-1.9 1.2-3-.4-.1-.4-.1-.6-.1zm1.3 3.2c-1.7 0-3.1.9-3.9.9s-2.2-.9-3.7-.9c-1.9 0-3.6 1.1-4.6 2.8-1.9 3.4-.5 8.4 1.4 11.2.9 1.4 2 2.9 3.4 2.9s1.9-.9 3.5-.9 2.1.9 3.5.9 2.4-1.4 3.3-2.8c1.1-1.6 1.5-3.2 1.5-3.3 0-.1-2.9-1.1-2.9-4.4 0-2.8 2.3-4.1 2.4-4.2-1.3-1.9-3.3-2.1-4-2.2z" fill="#000"/>
-      </svg>
-      <span className="ml-3 text-base font-semibold text-gray-800">Apple Pay</span>
-    </div>
-  </div>
-</div>  
-          )}
+        
         </div>
       </div>
     );
