@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { sendFrameToAPI } from '../utils/apiService';
 import { captureFrame } from '../utils/CameraUtils';
-
+// new flow branch with new same  session id for all retries
 // Custom hook for detection logic
 export const useDetection = (
   videoRef,
