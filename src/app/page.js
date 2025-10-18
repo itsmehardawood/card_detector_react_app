@@ -253,6 +253,7 @@ const CardDetectionApp = () => {
 
   // Helper function to handle detection failures with attempt tracking
   const handleDetectionFailure = (message, operation) => {
+    console.log(`🚨 Detection failure - Operation: ${operation}, Session ID: ${sessionId}, Current Attempt: ${attemptCount + 1}`);
     clearDetectionTimeout();
     stopRequestedRef.current = true;
 
@@ -404,10 +405,10 @@ const CardDetectionApp = () => {
       // Method 3: Demo mode (development only)
       if (process.env.NODE_ENV === "development" || demo === "true") {
         console.log("🧪 Using development/demo auth data");
-        const demoMerchantId = "276581V33945Y270";
+        const demoMerchantId = "5460858H5466594L";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzU5OTk2NjAxLCJleHAiOjE3NjAwMDAyMDEsIm5iZiI6MTc1OTk5NjYwMSwianRpIjoiQjlkZ0JJakM1aGpzTHJIOSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjhlNGExZTM4LTdjZDQtNDc3NS05MzQ4LWMwMTU1NzA5ZjVhZiIsIm1lcmNoYW50X2lkIjoiMjc2NTgxVjMzOTQ1WTI3MCIsImVuY3J5cHRpb25fa2V5IjoiRWFYYWZYYzNUdHluMGpuaiIsImZlYXR1cmVzIjpudWxsfQ.iVGS3eVvonAQ39OYhgLwWg7lW3ORPCIcEt8DJMxIlCY",
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYwNzc5ODc0LCJleHAiOjE3NjA3ODM0NzQsIm5iZiI6MTc2MDc3OTg3NCwianRpIjoiQ2tLejlvSlVCOFBBSFVUNSIsInN1YiI6IjU0NjA4NThINTQ2NjU5NEwiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjMwYWZjYWM2IiwibWVyY2hhbnRfaWQiOiI1NDYwODU4SDU0NjY1OTRMIiwiZW5jcnlwdGlvbl9rZXkiOiJqMHJYbjJUQmJBRGNZQmdMIiwiZmVhdHVyZXMiOm51bGx9.HscE_RvWglEr0uaU851fkRAtvudmwp5e8XsZQHlkC44",
             timestamp: Date.now(),
           source: "development_demo",
         };
@@ -690,7 +691,13 @@ const CardDetectionApp = () => {
 
     // Reset states and start front side detection
     setErrorMessage("");
-    setAttemptCount(0);
+    // Only reset attempt count if this is a truly new session (not a retry)
+    if (!sessionId) {
+      setAttemptCount(0);
+      console.log('🆔 New session - resetting attempt count');
+    } else {
+      console.log('🆔 Existing session - maintaining attempt count:', attemptCount);
+    }
     setCurrentOperation("");
     
     setFrontScanState({
@@ -963,9 +970,10 @@ const CardDetectionApp = () => {
     stopRequestedRef.current = false;
   };
 
-  // New function specifically for "Try Again" - keeps attempt count
+  // New function specifically for "Try Again" - keeps attempt count and session ID
   const handleTryAgain = () => {
     console.log("🔄 handleTryAgain called - stopping all detection processes");
+    console.log("🆔 Maintaining session ID:", sessionId, "for attempt tracking");
     
     // CRITICAL: Stop all detection immediately
     stopRequestedRef.current = true;
@@ -991,10 +999,10 @@ const CardDetectionApp = () => {
     setShowPromptText(false);
     setPromptText("");
 
-    // For back side validation failures, reset session ID and return to idle to restart from front
+    // For back side validation failures, keep session ID and return to idle to restart from front
     if (currentOperation === "back") {
-      console.log("🔄 Back side validation failed - resetting session ID and returning to idle");
-      setSessionId(""); // Reset session ID to force new session
+      console.log("🔄 Back side validation failed - keeping session ID for attempt tracking");
+      // DO NOT reset session ID - keep it for proper attempt tracking
       
       // Use setTimeout to ensure all async processes have stopped
       setTimeout(() => {
@@ -1014,6 +1022,9 @@ const CardDetectionApp = () => {
         motionPromptTimestamp: null,
       });
     } else if (currentOperation === "front") {
+      console.log("🔄 Front side validation failed - keeping session ID for attempt tracking");
+      // DO NOT reset session ID - keep it for proper attempt tracking
+      
       setTimeout(() => {
         setCurrentPhase("idle");
         stopRequestedRef.current = false; // Reset after transition
@@ -1031,8 +1042,10 @@ const CardDetectionApp = () => {
         motionPromptTimestamp: null,
       });
     } else {
-      // Default fallback - reset session ID for safety
-      setSessionId("");
+      // Default fallback - keep session ID for attempt tracking
+      console.log("🔄 Default fallback - keeping session ID for attempt tracking");
+      // DO NOT reset session ID - keep it for proper attempt tracking
+      
       setTimeout(() => {
         setCurrentPhase("idle");
         stopRequestedRef.current = false; // Reset after transition
