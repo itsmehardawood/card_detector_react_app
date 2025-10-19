@@ -894,7 +894,7 @@ else if (phase === 'back' && apiResponse.validation_failed === true) {
           reject(new Error('Timeout: No successful API responses received'));
         }
       }
-    }, 2400);
+    }, 24000);
   });
 };
 
