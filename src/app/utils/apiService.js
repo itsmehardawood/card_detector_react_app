@@ -21,10 +21,10 @@ export const sendFrameToAPI = async (
   // const apiUrl = `https://477a9ab44259.ngrok-free.app/detect/${merchantId}`;
 
   // dev server
-  const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
+  // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
 
   // prod server
-  // const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
+  const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
 
   const file = new File([frameBlob], `${phase}_frame_${frameNumber}.jpg`, {
     type: "image/jpeg",
@@ -58,4 +58,69 @@ export const sendFrameToAPI = async (
   console.log("Response of API: ", data);
 
   return data;
+};
+
+/**
+ * Report failure to the API when max retries are reached
+ * @param {string} scanId - The scan ID (optional)
+ * @param {string} sessionId - The session ID
+ * @param {string} reason - The reason for failure
+ * @param {string} phase - The phase where failure occurred (front/back/validation)
+ * @param {string} merchantId - The merchant ID
+ * @returns {Promise<void>}
+ */
+export const reportFailure = async (
+  scanId,
+  sessionId,
+  reason,
+  phase,
+  merchantId
+) => {
+  try {
+    // Extract authToken from WebView context
+    let authToken;
+    if (window.__WEBVIEW_AUTH__) {
+      ({ authToken } = window.__WEBVIEW_AUTH__);
+    } else {
+      console.error("No authentication available for failure report.");
+      return;
+    }
+
+    if (!authToken) {
+      console.error("Missing auth token for failure report.");
+      return;
+    }
+
+    const apiUrl = `https://api.cardnest.io/report_failure`;
+
+    const payload = {
+      scan_id: scanId || "",
+      session_id: sessionId || "",
+      reason: reason || "Max retries reached",
+      stage: phase || "unknown", // API expects 'stage' field, but we pass 'phase' (front/back/validation)
+      merchant_id: merchantId || "",
+    };
+
+    console.log("📤 Sending failure report:", payload);
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "auth-token": encodeURIComponent(authToken),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Failure report API error:", errorText);
+      return;
+    }
+
+    const data = await response.json();
+    console.log("✅ Failure report sent successfully:", data);
+  } catch (error) {
+    console.error("❌ Error sending failure report:", error);
+  }
 };

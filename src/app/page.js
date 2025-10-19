@@ -15,7 +15,7 @@ import {
   requestCameraPermissions,
   isCameraWorking,
 } from "./utils/CameraUtils";
-import { sendFrameToAPI } from "./utils/apiService";
+import { sendFrameToAPI, reportFailure } from "./utils/apiService";
 import { useDetection } from "./hooks/UseDetection";
 import Image from "next/image";
 
@@ -282,6 +282,27 @@ const CardDetectionApp = () => {
         "Maximum attempts reached. Please contact support for assistance."
       );
       setCurrentPhase("max-attempts-reached");
+      
+      // Report failure to the API when max attempts reached
+      const merchantId = authData?.merchantId || window.__WEBVIEW_AUTH__?.merchantId;
+      if (sessionId && merchantId) {
+        // Format reason with "MAX RETRY REACHED" prefix
+        const failureReason = message 
+          ? `MAX RETRY REACHED: ${message}` 
+          : "MAX RETRY REACHED: Failed after 5 attempts";
+        
+        reportFailure(
+          "", // scan_id (optional - empty since we don't have it)
+          sessionId,
+          failureReason,
+          operation || "unknown",
+          merchantId
+        ).catch(error => {
+          console.error("Failed to send failure report:", error);
+        });
+      } else {
+        console.warn("Cannot send failure report: missing sessionId or merchantId");
+      }
     } else {
       setErrorMessage(
         `${message} (Attempt ${newAttemptCount}/${MAX_ATTEMPTS})`
@@ -408,8 +429,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYwODg1OTU5LCJleHAiOjE3NjA4ODk1NTksIm5iZiI6MTc2MDg4NTk1OSwianRpIjoiOFNNT09zRTY5akdkY2dOZiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.xQJ3b3IkZ3bTzXJ3Z1LbVaVFeeWFvUvG-dBmVRBqG-s",
-              timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYwODkzMjE5LCJleHAiOjE3NjA4OTY4MTksIm5iZiI6MTc2MDg5MzIxOSwianRpIjoic2UwMWU1VWtPeU00ZDJPZSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.praUeQttYakocx0Hu7B-J44CT1YNpLVMRL_f4o-FFRI",
+            timestamp: Date.now(),
           source: "development_demo",
         };
 

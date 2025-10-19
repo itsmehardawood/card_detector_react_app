@@ -46,7 +46,7 @@ const ControlPanel = ({
   }
 
   // Error state with attempt tracking (enhanced from both files)
-  if (currentPhase === 'error') {
+  if (currentPhase === 'error' ) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <div className="text-center">
