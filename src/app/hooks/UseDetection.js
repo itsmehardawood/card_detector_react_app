@@ -39,7 +39,10 @@ export const useDetection = (
       let frameNumber = 0;
       let timeoutId = null;
       let isComplete = false;
+      let hasReceivedSuccess = false; // NEW: Track if we've already received success
       let maxFramesReachedTime = null; // Track when we reached 10 frames
+      let lastApiResponse = null; // Track last response
+      let successfulFramesCount = 0; // NEW: Track how many frames succeeded in THIS attempt
       
       const cleanup = () => {
         if (captureIntervalRef.current) {
@@ -55,6 +58,13 @@ export const useDetection = (
       
       const processFrame = async () => {
         try {
+          // 🛑 FIRST CHECK: Stop immediately if success already received
+          if (hasReceivedSuccess) {
+            console.log('🛑 Success already received - stopping frame capture completely');
+            cleanup(); // Stop the interval
+            return;
+          }
+          
           // Check if stop requested or already complete
           if (isComplete || stopRequestedRef.current) return;
           
@@ -86,14 +96,24 @@ export const useDetection = (
           if (frame && frame.size > 0) {
             frameNumber++;
             
+            // 🛑 CRITICAL: Stop BEFORE sending frame if we've already received success
+            if (hasReceivedSuccess) {
+              console.log(`⏭️ Skipping frame ${frameNumber} - success already received, not sending to API`);
+              return;
+            }
+            
             setIsProcessing(true);
             try {
               const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
+              
+              // 🎯 CRITICAL: Check for SUCCESS FIRST before checking hasReceivedSuccess flag
+              // This ensures we don't skip a success response even if another frame already succeeded
               
               // 🎯 HIGHEST PRIORITY: Check for status success OR already_completed (regardless of other conditions)
               if (apiResponse.status === "success" || apiResponse.status === "already_completed") {
                 console.log('🎯 SUCCESS/ALREADY_COMPLETED STATUS received! Stopping detection...');
                 console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
+                hasReceivedSuccess = true; // Mark success as received
                 isComplete = true;
                 cleanup();
                 setCurrentPhase('results');
@@ -104,10 +124,17 @@ export const useDetection = (
               // CRITICAL FIX: Check for final encrypted response first
               if (apiResponse.encrypted_card_data && apiResponse.status) {
                 console.log('🎯 Final encrypted response received! Stopping detection...');
+                hasReceivedSuccess = true; // Mark success as received
                 isComplete = true;
                 cleanup();
                 setCurrentPhase('results');
                 resolve(apiResponse);
+                return;
+              }
+              
+              // NOW check if success already received (for non-success responses)
+              if (hasReceivedSuccess) {
+                console.log(`⏭️ Skipping response processing for frame ${frameNumber} - success received while in flight`);
                 return;
               }
 
@@ -149,8 +176,37 @@ export const useDetection = (
               setCurrentPhase('error');
               reject(new Error('Validation failed'));
               return;
-            }              lastApiResponse = apiResponse;
-              setIsProcessing(false);
+            }              
+            
+            // � CRITICAL: Check for wait_for_front/wait_for_back - session needs full restart
+            if (apiResponse.status === 'wait_for_front') {
+              console.log(`�🔄 Backend requires session restart: ${apiResponse.status}`);
+              isComplete = true;
+              cleanup();
+              
+              const errorMsg = 'Oops, after numerous security scan detection your card issuer verification details do not match the bank records - please try again. Thank you!!.';
+              if (handleDetectionFailure) {
+                handleDetectionFailure(errorMsg, phase);
+              } else {
+                setErrorMessage(errorMsg);
+                setCurrentPhase('error');
+              }
+              reject(new Error(`Backend requires ${apiResponse.status.replace('wait_for_', '')} scan first`));
+              return;
+            }
+            
+            // 🔄 Track successful response (not error status)
+            // Only count as successful if we got a valid processing response
+            // EXCLUDE wait_for_front/wait_for_back as these indicate session needs restart
+            if (apiResponse && 
+                !apiResponse.error && 
+                apiResponse.status !== 'wait_for_front' && 
+                apiResponse.status !== 'wait_for_back') {
+              lastApiResponse = apiResponse;
+              successfulFramesCount++;
+              console.log(`✅ Valid API response received for frame ${frameNumber} (${successfulFramesCount} successful frames so far)`);
+            }
+            setIsProcessing(false);
 
               // Check for fake card detection in front phase
               if (phase === 'front' && apiResponse.fake_card === true) {
@@ -305,12 +361,20 @@ export const useDetection = (
               }
               
             } catch (apiError) {
-              console.error(`API error for frame ${frameNumber}:`, apiError);
+              // Suppress error logging if success already received (in-flight frames)
+              if (!hasReceivedSuccess) {
+                console.error(`API error for frame ${frameNumber}:`, apiError);
+              } else {
+                console.log(`⏭️ Ignoring API error for in-flight frame ${frameNumber} (success already received)`);
+              }
               setIsProcessing(false);
             }
           }
         } catch (error) {
-          console.error('Error in frame processing:', error);
+          // Suppress error if success already received
+          if (!hasReceivedSuccess && !isComplete && !stopRequestedRef.current) {
+            console.error('Error in frame processing:', error);
+          }
         }
       };
       
@@ -320,8 +384,16 @@ export const useDetection = (
       timeoutId = setTimeout(() => {
         if (!isComplete) {
           cleanup();
+          
+          // 🔴 CRITICAL: Check if we got ANY successful frames in THIS attempt
+          if (successfulFramesCount === 0) {
+            console.log('❌ Timeout: No successful API responses received in this attempt');
+            reject(new Error('Timeout: No successful API responses received'));
+            return;
+          }
+          
           if (lastApiResponse) {
-            console.log('Timeout reached, checking final conditions...');
+            console.log(`Timeout reached, checking final conditions... (${successfulFramesCount} successful frames received)`);
             
             // CRITICAL FIX: Check for final encrypted response OR already_completed in timeout
             if ((lastApiResponse.encrypted_card_data && lastApiResponse.status) || 
@@ -355,7 +427,7 @@ export const useDetection = (
             reject(new Error('Timeout: No successful API responses received'));
           }
         }
-      }, 24000);
+      }, 30000);
     });
   };
 
@@ -399,7 +471,10 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
     let frameNumber = 0;
     let timeoutId = null;
     let isComplete = false;
+    let hasReceivedSuccess = false; // NEW: Track if we've already received success
     let maxFramesReachedTime = null; // Track when we reached 10 frames
+    let lastApiResponse = null; // Track last response
+    let successfulFramesCount = 0; // NEW: Track how many frames succeeded in THIS attempt
     
     const cleanup = () => {
       if (captureIntervalRef.current) {
@@ -415,6 +490,13 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
     
     const processFrame = async () => {
       try {
+        // 🛑 FIRST CHECK: Stop immediately if success already received
+        if (hasReceivedSuccess) {
+          console.log('🛑 Success already received - stopping frame capture completely');
+          cleanup(); // Stop the interval
+          return;
+        }
+        
         // Check if stopped
         if (isComplete || stopRequestedRef.current) return;
         
@@ -430,7 +512,7 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
         }
         
         // Double-check before frame capture to prevent race conditions
-        if (isComplete || stopRequestedRef.current) return;
+        if (isComplete || stopRequestedRef.current || hasReceivedSuccess) return;
         
         // 🛡️ SAFETY CHECK: Verify video and canvas are still available
         if (!videoRef.current || !canvasRef.current) {
@@ -454,24 +536,33 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
         if (frame && frame.size > 0) {
           frameNumber++;
           
+          // 🛑 CRITICAL: Stop BEFORE sending frame if we've already received success
+          if (hasReceivedSuccess) {
+            console.log(`⏭️ Skipping frame ${frameNumber} - success already received, not sending to API`);
+            return;
+          }
+          
           setIsProcessing(true);
           try {
             const apiResponse = await sendFrameToAPI(frame, phase, currentSessionId, frameNumber);
+            
+            // 🎯 CRITICAL: Check for SUCCESS FIRST before checking hasReceivedSuccess flag
+            // This ensures we don't skip a success response even if another frame already succeeded
             
             // 🎯 HIGHEST PRIORITY: Check for status success OR already_completed (regardless of complete_scan)
             if (apiResponse.status === "success" || apiResponse.status === "already_completed") {
               console.log('🎯 SUCCESS/ALREADY_COMPLETED STATUS received! Stopping all detection immediately...');
               console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}, Complete Scan: ${apiResponse.complete_scan}`);
+              hasReceivedSuccess = true; // Mark success as received
               isComplete = true;
               cleanup();
               resolve(apiResponse);
               return;
             }
-
-
-                    
+            
             // 🎯 SECOND PRIORITY: Check for final encrypted response with complete_scan
             if (apiResponse.status === "success" && apiResponse.complete_scan === true) {
+              hasReceivedSuccess = true; // Mark success as received
               isComplete = true;
               cleanup();
               console.log('🎉 Complete scan with success status received!');
@@ -480,18 +571,56 @@ const captureAndSendFrames = async (phase, providedSessionId = null) => {
               return;
             }
 
-            // SECOND PRIORITY: Check for encrypted_card_data (legacy format)
+            // THIRD PRIORITY: Check for encrypted_card_data (legacy format)
             if (apiResponse.encrypted_card_data && apiResponse.status) {
+              hasReceivedSuccess = true; // Mark success as received
               isComplete = true;
               cleanup();
               console.log('🎉 Final encrypted response received - stopping detection immediately');
               console.log(`Status: ${apiResponse.status}, Score: ${apiResponse.score}`);
               resolve(apiResponse);
               return;
+            }
+            
+            // NOW check if success already received (for non-success responses)
+            if (hasReceivedSuccess) {
+              console.log(`⏭️ Skipping response processing for frame ${frameNumber} - success received while in flight`);
+              return;
+            }
+            
+            // 🚨 CRITICAL: Check for wait_for_front/wait_for_back - session needs full restart
+            if (apiResponse.status === 'wait_for_front' || apiResponse.status === 'wait_for_back') {
+              console.log(`🔄 Backend requires session restart: ${apiResponse.status}`);
+              isComplete = true;
+              cleanup();
+              
+              // For brand_mismatch during back scan, we need to restart from front
+              if (phase === 'back' && apiResponse.status === 'wait_for_front') {
+                const errorMsg = 'Oops, after numerous security scan detection your card issuer verification details do not match the bank records - please try again. Thank you!!.';
+                if (handleDetectionFailure) {
+                  handleDetectionFailure(errorMsg, 'back');
+                } else {
+                  setErrorMessage(errorMsg);
+                  setCurrentPhase('error');
+                }
+                reject(new Error('Session requires restart from front'));
+              } else {
+                reject(new Error(`Backend requires ${apiResponse.status.replace('wait_for_', '')} scan first`));
+              }
+              return;
             }       
    
-            
-            lastApiResponse = apiResponse;
+            // 🔄 Track successful response (not error status)
+            // Only count as successful if we got a valid processing response
+            // EXCLUDE wait_for_front/wait_for_back as these indicate session needs restart
+            if (apiResponse && 
+                !apiResponse.error && 
+                apiResponse.status !== 'wait_for_front' && 
+                apiResponse.status !== 'wait_for_back') {
+              lastApiResponse = apiResponse;
+              successfulFramesCount++;
+              console.log(`✅ Valid API response received for frame ${frameNumber} (${successfulFramesCount} successful frames so far)`);
+            }
             setIsProcessing(false);
             
             // Check for fake card detection in front phase
@@ -684,13 +813,18 @@ else if (phase === 'back' && apiResponse.validation_failed === true) {
             }
             
           } catch (apiError) {
-            console.error(`API error for frame ${frameNumber}:`, apiError);
+            // Suppress error logging if success already received (in-flight frames)
+            if (!hasReceivedSuccess) {
+              console.error(`API error for frame ${frameNumber}:`, apiError);
+            } else {
+              console.log(`⏭️ Ignoring API error for in-flight frame ${frameNumber} (success already received)`);
+            }
             setIsProcessing(false);
           }
         }
       } catch (error) {
         // Check if we're completed/stopped - if so, ignore errors and exit gracefully
-        if (isComplete || stopRequestedRef.current) {
+        if (isComplete || stopRequestedRef.current || hasReceivedSuccess) {
           console.log('🛑 Frame processing stopped due to completion state');
           return;
         }
@@ -710,8 +844,16 @@ else if (phase === 'back' && apiResponse.validation_failed === true) {
     timeoutId = setTimeout(() => {
       if (!isComplete) {
         cleanup();
+        
+        // 🔴 CRITICAL: Check if we got ANY successful frames in THIS attempt
+        if (successfulFramesCount === 0) {
+          console.log('❌ Timeout: No successful API responses received in this attempt');
+          reject(new Error('Timeout: No successful API responses received'));
+          return;
+        }
+        
         if (lastApiResponse) {
-          console.log('Timeout reached, checking final conditions...');
+          console.log(`Timeout reached, checking final conditions... (${successfulFramesCount} successful frames received)`);
           
           // PRIORITY CHECK: Final success, already_completed, or complete_scan response even on timeout
           if (lastApiResponse.status === "success" || 

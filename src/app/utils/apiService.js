@@ -18,13 +18,13 @@ export const sendFrameToAPI = async (
 
 
   // testing ngrok
-  // const apiUrl = `https://a330d6ba625e.ngrok-free.app/detect/${merchantId}`;
+  // const apiUrl = `https://477a9ab44259.ngrok-free.app/detect/${merchantId}`;
 
   // dev server
-  // const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
+  const apiUrl = `https://testscan.cardnest.io/detect/${merchantId}`;
 
   // prod server
-  const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
+  // const apiUrl = `https://api.cardnest.io/detect/${merchantId}`;
 
   const file = new File([frameBlob], `${phase}_frame_${frameNumber}.jpg`, {
     type: "image/jpeg",
@@ -47,7 +47,10 @@ export const sendFrameToAPI = async (
   // :white_check_mark: Error handling
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(":x: API Error:", errorText);
+    // Only log errors that aren't "wait_for_front" or "wait_for_back" (these are expected when scan is complete)
+    if (!errorText.includes("wait_for_front") && !errorText.includes("wait_for_back")) {
+      console.error(":x: API Error:", errorText);
+    }
     throw new Error(`API request failed with status ${response.status}`);
   }
   // :white_check_mark: Parse and return response JSON

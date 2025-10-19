@@ -478,13 +478,13 @@ const captureFrameInternal = (videoRef, canvasRef, resolve, reject) => {
   canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     
-    console.log('📷 Starting frame capture:', {
-      videoWidth: video.videoWidth,
-      videoHeight: video.videoHeight,
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
-      isCapturing: true
-    });
+    // console.log('📷 Starting frame capture:', {
+    //   videoWidth: video.videoWidth,
+    //   videoHeight: video.videoHeight,
+    //   canvasWidth: canvas.width,
+    //   canvasHeight: canvas.height,
+    //   isCapturing: true
+    // });
     
     // 🎨 DRAW VIDEO FRAME to canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);

@@ -405,11 +405,11 @@ const CardDetectionApp = () => {
       // Method 3: Demo mode (development only)
       if (process.env.NODE_ENV === "development" || demo === "true") {
         console.log("🧪 Using development/demo auth data");
-        const demoMerchantId = "5460858H5466594L";
+        const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYwNzc5ODc0LCJleHAiOjE3NjA3ODM0NzQsIm5iZiI6MTc2MDc3OTg3NCwianRpIjoiQ2tLejlvSlVCOFBBSFVUNSIsInN1YiI6IjU0NjA4NThINTQ2NjU5NEwiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6IjMwYWZjYWM2IiwibWVyY2hhbnRfaWQiOiI1NDYwODU4SDU0NjY1OTRMIiwiZW5jcnlwdGlvbl9rZXkiOiJqMHJYbjJUQmJBRGNZQmdMIiwiZmVhdHVyZXMiOm51bGx9.HscE_RvWglEr0uaU851fkRAtvudmwp5e8XsZQHlkC44",
-            timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYwODg1OTU5LCJleHAiOjE3NjA4ODk1NTksIm5iZiI6MTc2MDg4NTk1OSwianRpIjoiOFNNT09zRTY5akdkY2dOZiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.xQJ3b3IkZ3bTzXJ3Z1LbVaVFeeWFvUvG-dBmVRBqG-s",
+              timestamp: Date.now(),
           source: "development_demo",
         };
 
@@ -896,7 +896,7 @@ const CardDetectionApp = () => {
             // Show success message for 3 seconds before showing results
             setTimeout(() => {
               setCurrentPhase("results");
-            }, 3000);
+            }, 1000);
           } else {
             console.log(
               "⚠️ Scan result didn't meet success criteria"
