@@ -388,7 +388,7 @@ export const useDetection = (
           // 🔴 CRITICAL: Check if we got ANY successful frames in THIS attempt
           if (successfulFramesCount === 0) {
             console.log('❌ Timeout: No successful API responses received in this attempt');
-            reject(new Error('Timeout: No successful API responses received'));
+            reject(new Error('Timeout: Network Error or No successful API responses received'));
             return;
           }
           
@@ -424,7 +424,7 @@ export const useDetection = (
             console.log('Timeout reached, using last response');
             resolve(lastApiResponse);
           } else {
-            reject(new Error('Timeout: No successful API responses received'));
+            reject(new Error('Timeout: Network Error or No successful API responses received'));
           }
         }
       }, 24000);

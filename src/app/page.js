@@ -21,7 +21,7 @@ import Image from "next/image";
 
 // Constants for attempt limits and timeouts
 const MAX_ATTEMPTS = 5;
-const DETECTION_TIMEOUT = 150000; // 150 seconds
+const DETECTION_TIMEOUT = 60000; // 60 seconds
 
 const CardDetectionApp = () => {
   // Authentication state
@@ -173,6 +173,67 @@ const CardDetectionApp = () => {
       fetchMerchantDisplayInfo(Merchant);
     }
   }, [Merchant]);
+
+  // 📱 DEVICE INFO SENDING EFFECT
+  // Sends device information from Android to the API once auth is ready
+  useEffect(() => {
+    // Only proceed if we have authentication data
+    if (!authData && !Merchant) {
+      console.log("⏳ Waiting for auth data before sending device info...");
+      return;
+    }
+
+    async function sendDeviceInfo() {
+      try {
+        if (window.Android && typeof window.Android.getDeviceInfo === "function") {
+          console.log("📱 Android bridge detected — fetching device info...");
+          const raw = window.Android.getDeviceInfo();
+
+          let deviceData = {};
+          try {
+            deviceData = JSON.parse(raw);
+          } catch (err) {
+            console.error("❌ Failed to parse device info JSON:", err);
+            return;
+          }
+
+          console.log("✅ Got device info:", deviceData);
+
+          const res = await fetch("/securityscan/api/device-info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...deviceData,
+              merchantId: authData?.merchantId || Merchant,
+              timestamp: Date.now(),
+              sessionId: sessionId || "unknown",
+            }),
+          });
+
+          if (!res.ok) {
+            throw new Error(`API returned ${res.status}: ${res.statusText}`);
+          }
+
+          const result = await res.json();
+          console.log("📤 Device info sent successfully:", result);
+        } else {
+          console.log("⚠️ No Android bridge found — likely in browser mode.");
+        }
+      } catch (error) {
+        console.error("🔥 Error while sending device info:", error);
+        // Don't block the app if device info fails
+      }
+    }
+
+    // Add a small delay to ensure Android bridge is fully ready
+    const timer = setTimeout(() => {
+      sendDeviceInfo();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [authData, Merchant, sessionId]); // ✅ Proper dependencies
+
+
 
   // 📹 CAMERA PERMISSION HANDLER
   // Handles camera permission errors and provides user feedback
@@ -429,8 +490,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYwODkzMjE5LCJleHAiOjE3NjA4OTY4MTksIm5iZiI6MTc2MDg5MzIxOSwianRpIjoic2UwMWU1VWtPeU00ZDJPZSIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.praUeQttYakocx0Hu7B-J44CT1YNpLVMRL_f4o-FFRI",
-            timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYxNTYyNzQ1LCJleHAiOjE3NjE1NjYzNDUsIm5iZiI6MTc2MTU2Mjc0NSwianRpIjoiOXpPTVBXR1liMU0zSDV4QiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.ls5TsQAgeOIFaN3d2_qXzD_0D6otnob0vMlD3Jzaqak",
+                  timestamp: Date.now(),
           source: "development_demo",
         };
 
