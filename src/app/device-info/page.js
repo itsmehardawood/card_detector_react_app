@@ -10,14 +10,16 @@ export default function DeviceInfoPage() {
     async function testDeviceBridge() {
       try {
         // 🔹 MOCK for testing in normal browser
-        if (!window.Android) {
-          window.Android = {
-            getDeviceInfo: () => JSON.stringify({
-              DeviceId: "test-1234",
-              device: { brand: "Google", model: "Pixel 7" },
-              network: { activeTransports: ["WIFI"], hasInternet: true },
-              sims: [{ carrierId: 410, simType: "physical" }],
-            }),
+        if (!window.read) {
+          window.read = {
+            device: {
+              information: () => JSON.stringify({
+                DeviceId: "test-1234",
+                device: { brand: "Google", model: "Pixel 7" },
+                network: { activeTransports: ["WIFI"], hasInternet: true },
+                sims: [{ carrierId: 410, simType: "physical" }],
+              }),
+            }
           };
           console.log("🧩 Mock Android bridge added for testing.");
           setStatus("Mock Android bridge created for testing");
@@ -27,9 +29,9 @@ export default function DeviceInfoPage() {
         await new Promise(resolve => setTimeout(resolve, 300));
 
         // 🔹 Get data from Android
-        if (window.Android && typeof window.Android.getDeviceInfo === "function") {
+        if (window.read && window.read.device && typeof window.read.device.information === "function") {
           setStatus("Fetching device info from Android...");
-          const rawData = window.Android.getDeviceInfo();
+          const rawData = window.read.device.information();
           
           let data;
           try {

@@ -185,9 +185,9 @@ const CardDetectionApp = () => {
 
     async function sendDeviceInfo() {
       try {
-        if (window.Android && typeof window.Android.getDeviceInfo === "function") {
+        if (window.read && window.read.device && typeof window.read.device.information === "function") {
           console.log("📱 Android bridge detected — fetching device info...");
-          const raw = window.Android.getDeviceInfo();
+          const raw = window.read.device.information();
 
           let deviceData = {};
           try {
