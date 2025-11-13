@@ -19,40 +19,91 @@ export default function DeviceInfoPage() {
                 network: { activeTransports: ["WIFI"], hasInternet: true },
                 sims: [{ carrierId: 410, simType: "physical" }],
               }),
+            },
+            location: {
+              get: () => JSON.stringify({
+                latitude: 37.7749,
+                longitude: -122.4194,
+                accuracy: 10.5,
+                provider: "gps"
+              }),
             }
           };
-          console.log("🧩 Mock Android bridge added for testing.");
+          console.log("🧩 Mock Android bridge added for testing (with location).");
           setStatus("Mock Android bridge created for testing");
         }
 
         // Wait a bit for bridge to be ready
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // 🔹 Get data from Android
+        let deviceData = {};
+        let locationData = {};
+
+        // 🔹 Get device data from Android
         if (window.read && window.read.device && typeof window.read.device.information === "function") {
           setStatus("Fetching device info from Android...");
           const rawData = window.read.device.information();
           
-          let data;
           try {
-            data = JSON.parse(rawData);
+            deviceData = JSON.parse(rawData);
+            console.log("📱 Device Info:", deviceData);
+            setDeviceInfo(deviceData);
           } catch (err) {
             console.error("❌ Failed to parse device info:", err);
             setStatus("Error: Failed to parse device info JSON");
             return;
           }
+        }
 
-          console.log("📱 Device Info:", data);
-          setDeviceInfo(data);
-          setStatus("Device info retrieved successfully");
+        // 🔹 Get location data from Android
+        if (window.read && window.read.location && typeof window.read.location.get === "function") {
+          setStatus("Fetching location from Android...");
+          const locationRaw = window.read.location.get();
+          
+          try {
+            locationData = JSON.parse(locationRaw);
+            console.log("📍 Location Info:", locationData);
+          } catch (err) {
+            console.error("❌ Failed to parse location:", err);
+          }
+        } else {
+          console.log("⚠️ No location bridge, trying browser geolocation...");
+          try {
+            const position = await new Promise((resolve, reject) => {
+              if (!navigator.geolocation) {
+                reject(new Error("Geolocation not supported"));
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              });
+            });
 
+            locationData = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              source: "browser_geolocation"
+            };
+            console.log("📍 Location from browser:", locationData);
+          } catch (geoError) {
+            console.warn("⚠️ Location unavailable:", geoError.message);
+          }
+        }
+
+        setStatus(deviceData ? "Device info retrieved successfully" : "No device info available");
+
+        if (Object.keys(deviceData).length > 0 || Object.keys(locationData).length > 0) {
           // 🔹 Send to API with full context
-          setStatus("Sending device info to API...");
+          setStatus("Sending device info & location to API...");
           const res = await fetch("/securityscan/api/device-info", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              ...data,
+              ...deviceData,
+              location: locationData,
               merchantId: "TEST_MERCHANT", // Test merchant ID
               timestamp: Date.now(),
               sessionId: "test_session",
@@ -68,7 +119,7 @@ export default function DeviceInfoPage() {
           setApiResponse(result);
           setStatus("✅ Test completed successfully!");
         } else {
-          setStatus("❌ No Android bridge found");
+          setStatus("❌ No device or location data found");
         }
       } catch (err) {
         console.error("❌ Test Error:", err);

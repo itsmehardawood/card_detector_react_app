@@ -13,13 +13,15 @@
 export async function POST(request) {
   try {
     const data = await request.json();
-    console.log("📦 Received device info from Android:", {
+    console.log("📦 Received device info & location from Android:", {
       merchantId: data.merchantId,
       sessionId: data.sessionId,
       timestamp: data.timestamp,
       deviceId: data.DeviceId,
       hasDeviceData: !!data.device,
       hasNetworkData: !!data.network,
+      hasLocationData: !!data.location,
+      locationSource: data.location?.source || data.location?.provider || "unknown"
     });
 
     // Validate required fields
@@ -27,9 +29,19 @@ export async function POST(request) {
       console.warn("⚠️ Device info received without merchantId");
     }
 
+    // Log location data if available
+    if (data.location) {
+      console.log("📍 Location data:", {
+        latitude: data.location.latitude,
+        longitude: data.location.longitude,
+        accuracy: data.location.accuracy,
+        hasAddress: !!data.location.address
+      });
+    }
+
     // TODO: Later you can send to Laravel/backend here
     // Example:
-    // const backendResponse = await fetch('https://your-backend.com/api/device-info', {
+    // const backendResponse = await fetch('https://admin.cardnest.io/api/device-info', {
     //   method: 'POST',
     //   headers: { 'Content-Type': 'application/json' },
     //   body: JSON.stringify(data)
@@ -38,7 +50,7 @@ export async function POST(request) {
     return Response.json({ 
       success: true, 
       received: data,
-      message: "Device info received successfully"
+      message: "Device info & location received successfully"
     });
   } catch (error) {
     console.error("❌ Error parsing device info:", error);

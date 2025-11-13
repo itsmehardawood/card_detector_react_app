@@ -174,8 +174,8 @@ const CardDetectionApp = () => {
     }
   }, [Merchant]);
 
-  // 📱 DEVICE INFO SENDING EFFECT
-  // Sends device information from Android to the API once auth is ready
+  // 📱 DEVICE INFO & LOCATION SENDING EFFECT
+  // Sends device information and location from Android to the API once auth is ready
   useEffect(() => {
     // Only proceed if we have authentication data
     if (!authData && !Merchant) {
@@ -183,27 +183,78 @@ const CardDetectionApp = () => {
       return;
     }
 
-    async function sendDeviceInfo() {
+    async function sendDeviceInfoAndLocation() {
       try {
+        let deviceData = {};
+        let locationData = {};
+
+        // 📱 Get device information from Android bridge
         if (window.read && window.read.device && typeof window.read.device.information === "function") {
           console.log("📱 Android bridge detected — fetching device info...");
           const raw = window.read.device.information();
 
-          let deviceData = {};
           try {
             deviceData = JSON.parse(raw);
+            console.log("✅ Got device info:", deviceData);
           } catch (err) {
             console.error("❌ Failed to parse device info JSON:", err);
-            return;
           }
+        } else {
+          console.log("⚠️ No Android bridge found for device info — likely in browser mode.");
+        }
 
-          console.log("✅ Got device info:", deviceData);
+        // 📍 Get location from Android bridge
+        if (window.read && window.read.location && typeof window.read.location.get === "function") {
+          console.log("📍 Fetching location from Android...");
+          const locationRaw = window.read.location.get();
 
+          try {
+            locationData = JSON.parse(locationRaw);
+            console.log("✅ Got location data:", locationData);
+          } catch (err) {
+            console.error("❌ Failed to parse location JSON:", err);
+          }
+        } else {
+          console.log("⚠️ No Android bridge found for location — trying browser geolocation API...");
+          
+          // Fallback: Try browser's geolocation API
+          try {
+            const position = await new Promise((resolve, reject) => {
+              if (!navigator.geolocation) {
+                reject(new Error("Geolocation not supported"));
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              });
+            });
+
+            locationData = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              altitude: position.coords.altitude,
+              speed: position.coords.speed,
+              timestamp: position.timestamp,
+              source: "browser_geolocation"
+            };
+            console.log("✅ Got location from browser:", locationData);
+          } catch (geoError) {
+            console.warn("⚠️ Browser geolocation failed:", geoError.message);
+            locationData = { error: geoError.message, source: "browser_geolocation_failed" };
+          }
+        }
+
+        // Send combined data to API
+        if (Object.keys(deviceData).length > 0 || Object.keys(locationData).length > 0) {
           const res = await fetch("/securityscan/api/device-info", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...deviceData,
+              location: locationData,
               merchantId: authData?.merchantId || Merchant,
               timestamp: Date.now(),
               sessionId: sessionId || "unknown",
@@ -215,19 +266,19 @@ const CardDetectionApp = () => {
           }
 
           const result = await res.json();
-          console.log("📤 Device info sent successfully:", result);
+          console.log("📤 Device info & location sent successfully:", result);
         } else {
-          console.log("⚠️ No Android bridge found — likely in browser mode.");
+          console.warn("⚠️ No device info or location data to send");
         }
       } catch (error) {
-        console.error("🔥 Error while sending device info:", error);
+        console.error("🔥 Error while sending device info & location:", error);
         // Don't block the app if device info fails
       }
     }
 
     // Add a small delay to ensure Android bridge is fully ready
     const timer = setTimeout(() => {
-      sendDeviceInfo();
+      sendDeviceInfoAndLocation();
     }, 300);
 
     return () => clearTimeout(timer);
