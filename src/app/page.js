@@ -174,7 +174,7 @@ const CardDetectionApp = () => {
     }
   }, [Merchant]);
 
-  // 📱 DEVICE INFO & LOCATION SENDING EFFECT
+  //  DEVICE INFO & LOCATION SENDING EFFECT
   // Sends device information and location from Android to the API once auth is ready
   useEffect(() => {
     // Only proceed if we have authentication data

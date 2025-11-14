@@ -13,24 +13,20 @@ export default function DeviceInfoPage() {
         if (!window.read) {
           window.read = {
             device: {
-              information: () => JSON.stringify({
-                DeviceId: "test-1234",
-                device: { brand: "Google", model: "Pixel 7" },
-                network: { activeTransports: ["WIFI"], hasInternet: true },
-                sims: [{ carrierId: 410, simType: "physical" }],
-              }),
+              // ✅ Using REAL Android data format for testing
+              information: () => "{\"DeviceId\":\"fda769bcad48d0eb\",\"device\":{\"bootCount\":61,\"brand\":\"samsung\",\"buildFingerprint\":\"samsung/e3qxxx/e3q:16/BP2A.250605.031.A3/S928BXXS4CYJ7:user/release-keys\",\"buildId\":\"BP2A.250605.031.A3\",\"device\":\"e3q\",\"manufacturer\":\"samsung\",\"model\":\"SM-S928B\",\"product\":\"e3qxxx\",\"release\":\"16\",\"sdkInt\":36,\"securityPatch\":\"2025-10-01\"},\"network\":{\"activeTransports\":[\"WIFI\"],\"bandwidthKbpsDown\":40439,\"bandwidthKbpsUp\":46265,\"dns\":[\"192.168.0.1\",\"114.114.114.114\"],\"hasInternet\":true,\"ipv4\":[\"192.168.0.175\"],\"ipv6\":[\"fe80::b005:fff:fe90:2b06\"],\"isMetered\":false,\"isValidated\":true,\"wifi\":{\"linkSpeedMbps\":432,\"rssi\":-65}},\"sims\":[{\"carrierId\":1970,\"mccmmc\":\"42403\",\"sim\":\"971559467800\",\"simType\":\"physical\",\"subscriptionId\":9},{\"carrierId\":1970,\"mccmmc\":\"42403\",\"sim\":\"971585589455\",\"simType\":\"physical\",\"subscriptionId\":5}]}"
             },
             location: {
               get: () => JSON.stringify({
-                latitude: 37.7749,
-                longitude: -122.4194,
+                latitude: 25.2048,
+                longitude: 55.2708,
                 accuracy: 10.5,
                 provider: "gps"
               }),
             }
           };
-          console.log("🧩 Mock Android bridge added for testing (with location).");
-          setStatus("Mock Android bridge created for testing");
+          console.log("🧩 Mock Android bridge added (using REAL Android data format).");
+          setStatus("Mock Android bridge created with real data format");
         }
 
         // Wait a bit for bridge to be ready
