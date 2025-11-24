@@ -188,6 +188,10 @@ const CardDetectionApp = () => {
         let deviceData = {};
         let locationData = {};
 
+        // 🔍 Debug: Check what's available on window object
+        console.log("🔍 Checking window.read:", typeof window.read);
+        console.log("🔍 window.read object:", window.read);
+
         // 📱 Get device information from Android bridge
         if (window.read && window.read.device && typeof window.read.device.information === "function") {
           console.log("📱 Android bridge detected — fetching device info...");
@@ -227,8 +231,7 @@ const CardDetectionApp = () => {
             locationData = JSON.parse(locationRaw);
             console.log("✅ Got location data:", locationData);
           } catch (err) {
-            // If parsing fails, it might be double-encoded (wrapped in JSON.stringify)
-            // Try parsing twice to handle escaped JSON
+          
             try {
               const unescaped = JSON.parse(locationRaw);
               if (typeof unescaped === 'string') {
