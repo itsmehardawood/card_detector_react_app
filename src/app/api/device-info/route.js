@@ -5,6 +5,12 @@ export async function POST(request) {
   try {
     const data = await request.json();
     
+    console.log("\n🔍 ========================================");
+    console.log("🔍 RAW REQUEST BODY RECEIVED:");
+    console.log("🔍 ========================================");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("🔍 ========================================\n");
+    
     console.log("📦 ========================================");
     console.log("📦 DEVICE INFO RECEIVED FROM ANDROID");
     console.log("📦 ========================================");
