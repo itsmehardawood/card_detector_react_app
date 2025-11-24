@@ -194,10 +194,24 @@ const CardDetectionApp = () => {
           const raw = window.read.device.information();
 
           try {
+            // Try parsing directly first
             deviceData = JSON.parse(raw);
             console.log("✅ Got device info:", deviceData);
           } catch (err) {
-            console.error("❌ Failed to parse device info JSON:", err);
+            // If parsing fails, it might be double-encoded (wrapped in JSON.stringify)
+            // Try parsing twice to handle escaped JSON
+            try {
+              const unescaped = JSON.parse(raw);
+              if (typeof unescaped === 'string') {
+                deviceData = JSON.parse(unescaped);
+                console.log("✅ Got device info (double-encoded, now fixed):", deviceData);
+              } else {
+                deviceData = unescaped;
+              }
+            } catch (doubleErr) {
+              console.error("❌ Failed to parse device info JSON:", err);
+              console.error("❌ Also failed double-parse attempt:", doubleErr);
+            }
           }
         } else {
           console.log("⚠️ No Android bridge found for device info — likely in browser mode.");
@@ -209,10 +223,24 @@ const CardDetectionApp = () => {
           const locationRaw = window.read.location.get();
 
           try {
+            // Try parsing directly first
             locationData = JSON.parse(locationRaw);
             console.log("✅ Got location data:", locationData);
           } catch (err) {
-            console.error("❌ Failed to parse location JSON:", err);
+            // If parsing fails, it might be double-encoded (wrapped in JSON.stringify)
+            // Try parsing twice to handle escaped JSON
+            try {
+              const unescaped = JSON.parse(locationRaw);
+              if (typeof unescaped === 'string') {
+                locationData = JSON.parse(unescaped);
+                console.log("✅ Got location data (double-encoded, now fixed):", locationData);
+              } else {
+                locationData = unescaped;
+              }
+            } catch (doubleErr) {
+              console.error("❌ Failed to parse location JSON:", err);
+              console.error("❌ Also failed double-parse attempt:", doubleErr);
+            }
           }
         } else {
           console.log("⚠️ No Android bridge found for location — trying browser geolocation API...");
