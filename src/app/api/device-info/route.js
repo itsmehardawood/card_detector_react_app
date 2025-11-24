@@ -1,56 +1,104 @@
 
-//  export async function GET() {
-//   return Response.json({
-//     message: "✅ Device Info API working!",
-//     sample: {
-//       device: { brand: "Google", model: "Pixel 7" },
-//       network: { activeTransports: ["WIFI"], hasInternet: true },
-//       sims: [{ carrierId: 410, simType: "physical" }],
-//     },
-//   });
-// }
+
 
 export async function POST(request) {
   try {
     const data = await request.json();
-    console.log("📦 Received device info & location from Android:", {
-      merchantId: data.merchantId,
-      sessionId: data.sessionId,
-      timestamp: data.timestamp,
-      deviceId: data.DeviceId,
-      hasDeviceData: !!data.device,
-      hasNetworkData: !!data.network,
-      hasLocationData: !!data.location,
-      locationSource: data.location?.source || data.location?.provider || "unknown"
-    });
+    
+    console.log("📦 ========================================");
+    console.log("📦 DEVICE INFO RECEIVED FROM ANDROID");
+    console.log("📦 ========================================");
+    
+    // Log Device ID
+    console.log("🆔 Device ID:", data.DeviceId);
+    
+    // Log Device Information
+    if (data.device) {
+      console.log("📱 Device Details:", {
+        brand: data.device.brand,
+        manufacturer: data.device.manufacturer,
+        model: data.device.model,
+        androidVersion: data.device.release,
+        sdkInt: data.device.sdkInt,
+        securityPatch: data.device.securityPatch,
+        bootCount: data.device.bootCount,
+        buildId: data.device.buildId,
+        buildFingerprint: data.device.buildFingerprint
+      });
+    }
+    
+    // Log Network Information
+    if (data.network) {
+      console.log("🌐 Network Details:", {
+        hasInternet: data.network.hasInternet,
+        activeTransports: data.network.activeTransports,
+        ipv4: data.network.ipv4,
+        ipv6: data.network.ipv6,
+        dns: data.network.dns,
+        isMetered: data.network.isMetered,
+        isValidated: data.network.isValidated,
+        bandwidthDown: `${data.network.bandwidthKbpsDown} Kbps`,
+        bandwidthUp: `${data.network.bandwidthKbpsUp} Kbps`
+      });
+      
+      if (data.network.wifi) {
+        console.log("📶 WiFi Info:", {
+          linkSpeed: `${data.network.wifi.linkSpeedMbps} Mbps`,
+          rssi: data.network.wifi.rssi
+        });
+      }
+    }
+    
+    // Log SIM Information
+    if (data.sims && data.sims.length > 0) {
+      console.log("📞 SIM Cards:", data.sims.map((sim, index) => ({
+        slot: index + 1,
+        number: sim.sim,
+        type: sim.simType,
+        carrier: sim.carrierId,
+        mccmnc: sim.mccmmc,
+        subscriptionId: sim.subscriptionId
+      })));
+    }
+    
+    // Log Location if available
+    if (data.location) {
+      console.log("📍 Location Data:", {
+        latitude: data.location.latitude,
+        longitude: data.location.longitude,
+        accuracy: data.location.accuracy,
+        source: data.location.source || data.location.provider,
+        hasAddress: !!data.location.address
+      });
+      
+      if (data.location.address) {
+        console.log("🏠 Address:", data.location.address);
+      }
+    }
+    
+    // Log Session Information
+    if (data.merchantId || data.sessionId) {
+      console.log("🔑 Session Info:", {
+        merchantId: data.merchantId,
+        sessionId: data.sessionId,
+        timestamp: data.timestamp
+      });
+    }
+    
+    // Log complete raw data for Laravel API reference
+    console.log("📄 COMPLETE RAW DATA (for Laravel API):");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("📦 ========================================\n");
 
     // Validate required fields
     if (!data.merchantId) {
       console.warn("⚠️ Device info received without merchantId");
     }
 
-    // Log location data if available
-    if (data.location) {
-      console.log("📍 Location data:", {
-        latitude: data.location.latitude,
-        longitude: data.location.longitude,
-        accuracy: data.location.accuracy,
-        hasAddress: !!data.location.address
-      });
-    }
-
-    // TODO: Later you can send to Laravel/backend here
-    // Example:
-    // const backendResponse = await fetch('https://admin.cardnest.io/api/device-info', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(data)
-    // });
-
     return Response.json({ 
       success: true, 
       received: data,
-      message: "Device info & location received successfully"
+      message: "Device info received and logged successfully"
     });
   } catch (error) {
     console.error("❌ Error parsing device info:", error);
@@ -73,44 +121,3 @@ export async function GET() {
 
 
 
-
-
-// after laravel side done
-
-
-// export async function POST(request) {
-//   try {
-//     const data = await request.json();
-//     console.log("📦 Received device info from Android:", data);
-
-//     // ✅ NEW: Send to Laravel backend
-//     const backendResponse = await fetch('https://admin.cardnest.io/api/device-info', {
-//       method: 'POST',
-//       headers: { 
-//         'Content-Type': 'application/json',
-//         // Add JWT token if needed
-//         // 'Authorization': `Bearer ${data.authToken}`
-//       },
-//       body: JSON.stringify(data)
-//     });
-
-//     if (!backendResponse.ok) {
-//       throw new Error(`Laravel API error: ${backendResponse.status}`);
-//     }
-
-//     const backendResult = await backendResponse.json();
-//     console.log("✅ Sent to Laravel:", backendResult);
-
-//     return Response.json({ 
-//       success: true, 
-//       message: "Device info received and stored",
-//       backend: backendResult
-//     });
-//   } catch (error) {
-//     console.error("❌ Error:", error);
-//     return Response.json({ 
-//       success: false, 
-//       error: error.message 
-//     }, { status: 500 });
-//   }
-// }
