@@ -20,7 +20,7 @@ export async function POST(request) {
     
     // Log Device Information
     if (data.device) {
-      console.log("📱 Device Details:", {
+      console.log(" Device Details:", {
         brand: data.device.brand,
         manufacturer: data.device.manufacturer,
         model: data.device.model,
@@ -65,21 +65,6 @@ export async function POST(request) {
         mccmnc: sim.mccmmc,
         subscriptionId: sim.subscriptionId
       })));
-    }
-    
-    // Log Location if available
-    if (data.location) {
-      console.log("📍 Location Data:", {
-        latitude: data.location.latitude,
-        longitude: data.location.longitude,
-        accuracy: data.location.accuracy,
-        source: data.location.source || data.location.provider,
-        hasAddress: !!data.location.address
-      });
-      
-      if (data.location.address) {
-        console.log("🏠 Address:", data.location.address);
-      }
     }
     
     // Log Session Information
