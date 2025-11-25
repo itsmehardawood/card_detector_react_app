@@ -31,13 +31,26 @@ export default function DeviceInfoPage() {
           setStatus("Fetching device info from Android...");
           const rawData = window.read.device.information();
           
-          try {
-            deviceData = JSON.parse(rawData);
-            console.log("📱 Device Info:", deviceData);
+          // Handle both string and object return types
+          if (typeof rawData === 'object' && rawData !== null) {
+            // Android returned a JavaScript object directly
+            deviceData = rawData;
+            console.log("📱 Device Info (object):", deviceData);
             setDeviceInfo(deviceData);
-          } catch (err) {
-            console.error("❌ Failed to parse device info:", err);
-            setStatus("Error: Failed to parse device info JSON");
+          } else if (typeof rawData === 'string') {
+            // Android returned a JSON string
+            try {
+              deviceData = JSON.parse(rawData);
+              console.log("📱 Device Info (parsed string):", deviceData);
+              setDeviceInfo(deviceData);
+            } catch (err) {
+              console.error("❌ Failed to parse device info:", err);
+              setStatus("Error: Failed to parse device info JSON");
+              return;
+            }
+          } else {
+            console.error("❌ Unexpected data type from bridge:", typeof rawData);
+            setStatus("Error: Invalid data type from Android bridge");
             return;
           }
         } else {

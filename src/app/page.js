@@ -174,12 +174,13 @@ const CardDetectionApp = () => {
     }
   }, [Merchant]);
 
-  //  DEVICE INFO SENDING EFFECT
-  // Sends device information from Android to the API once auth is ready
+
+
+  // bridge code...
   useEffect(() => {
     // Only proceed if we have authentication data
     if (!authData && !Merchant) {
-      console.log("⏳ Waiting for auth data before sending device info...");
+      console.log(" Waiting for auth data before sending device info...");
       return;
     }
 
@@ -187,7 +188,7 @@ const CardDetectionApp = () => {
       try {
         let deviceData = {};
 
-        // 🔍 Debug: Check what's available on window object
+        //  Debug: Check what's available on window object
         console.log("🔍 Checking window.read:", typeof window.read);
         console.log("🔍 window.read object:", window.read);
 
@@ -196,26 +197,35 @@ const CardDetectionApp = () => {
           console.log("📱 Android device bridge detected — fetching device info...");
           const raw = window.read.device.information();
 
-          try {
-            // Try parsing directly first
-            deviceData = JSON.parse(raw);
-            console.log("✅ Got device info:", deviceData);
-          } catch (err) {
-            // If parsing fails, it might be double-encoded (wrapped in JSON.stringify)
-            // Try parsing twice to handle escaped JSON
+          // Handle both string and object return types
+          if (typeof raw === 'object' && raw !== null) {
+            // Android returned a JavaScript object directly
+            deviceData = raw;
+            console.log("✅ Got device info (object):", deviceData);
+          } else if (typeof raw === 'string') {
+            // Android returned a JSON string
             try {
-              const unescaped = JSON.parse(raw);
-              if (typeof unescaped === 'string') {
-                deviceData = JSON.parse(unescaped);
-                console.log("✅ Got device info (double-encoded, now fixed):", deviceData);
-              } else {
-                deviceData = unescaped;
+              deviceData = JSON.parse(raw);
+              console.log("✅ Got device info (parsed string):", deviceData);
+            } catch (err) {
+              // If parsing fails, it might be double-encoded
+              try {
+                const unescaped = JSON.parse(raw);
+                if (typeof unescaped === 'string') {
+                  deviceData = JSON.parse(unescaped);
+                  console.log("✅ Got device info (double-encoded, now fixed):", deviceData);
+                } else {
+                  deviceData = unescaped;
+                }
+              } catch (doubleErr) {
+                console.error("❌ Failed to parse device info JSON:", err);
+                console.error("❌ Also failed double-parse attempt:", doubleErr);
+                return; // Exit if parsing fails
               }
-            } catch (doubleErr) {
-              console.error("❌ Failed to parse device info JSON:", err);
-              console.error("❌ Also failed double-parse attempt:", doubleErr);
-              return; // Exit if parsing fails
             }
+          } else {
+            console.error("❌ Unexpected data type from Android bridge:", typeof raw);
+            return;
           }
         } else {
           console.log("⚠️ No Android device bridge found — likely in browser mode.");
@@ -241,10 +251,10 @@ const CardDetectionApp = () => {
           const result = await res.json();
           console.log("📤 Device info sent successfully:", result);
         } else {
-          console.warn("⚠️ No device info to send");
+          console.warn(" No device info to send");
         }
       } catch (error) {
-        console.error("🔥 Error while sending device info:", error);
+        console.error(" Error while sending device info:", error);
         // Don't block the app if device info fails
       }
     }
@@ -255,11 +265,13 @@ const CardDetectionApp = () => {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [authData, Merchant, sessionId]); // ✅ Proper dependencies
+  }, [authData, Merchant, sessionId]); 
 
 
 
-  // 📹 CAMERA PERMISSION HANDLER
+
+
+
   // Handles camera permission errors and provides user feedback
   const handleCameraPermissionError = (errorType) => {
     console.log('📹 Camera permission error:', errorType);
@@ -287,7 +299,7 @@ const CardDetectionApp = () => {
     }
   };
 
-  // 🔄 REQUEST CAMERA PERMISSIONS
+  //  REQUEST CAMERA PERMISSIONS
   // Attempts to request camera permissions again
   const handleRequestCameraPermission = async () => {
     console.log('🔄 Requesting camera permissions...');
