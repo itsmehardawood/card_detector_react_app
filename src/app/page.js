@@ -233,7 +233,7 @@ const CardDetectionApp = () => {
 
         // Send device data to API
         if (Object.keys(deviceData).length > 0) {
-          const res = await fetch("/securityscan/api/device-info", {
+          const res = await fetch("/api/device-info", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
