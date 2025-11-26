@@ -205,79 +205,81 @@ const CardDetectionApp = () => {
     }
   };
 
-  // bridge code...
+  // bridge code - Poll for Android bridge since it's injected asynchronously
   useEffect(() => {
-    async function sendDeviceInfo() {
+    let pollCount = 0;
+    const maxPolls = 10; // Try 10 times (10 seconds total)
+    let pollInterval = null;
+    let deviceInfoSent = false;
+
+    async function checkAndSendDeviceInfo() {
       try {
-        // Send initial log to server
-        await serverLog("🚀 Device info useEffect triggered", {
+        pollCount++;
+        
+        await serverLog(`🔍 Polling for Android bridge (attempt ${pollCount}/${maxPolls})`, {
           hasAuthData: !!authData,
           hasMerchant: !!Merchant,
-          hasSessionId: !!sessionId,
           merchantId: authData?.merchantId || Merchant || "NONE",
-          sessionId: sessionId || "NONE"
         });
 
         // Only proceed if we have authentication data
         if (!authData && !Merchant) {
-          await serverLog("⏸️ Waiting for auth data before sending device info");
-          return;
+          await serverLog("⏸️ Waiting for auth data before checking device info");
+          return false; // Keep polling
         }
-
-        let deviceData = {};
 
         // Check if Android bridge exists
         const hasAndroidBridge = !!(window.read && window.read.device && typeof window.read.device.information === "function");
         
-        await serverLog("🔍 Checking Android bridge", {
-          windowReadExists: !!window.read,
-          deviceExists: !!(window.read && window.read.device),
-          informationExists: hasAndroidBridge,
-          windowReadType: typeof window.read
+        if (!hasAndroidBridge) {
+          await serverLog(`⏳ Bridge not ready yet (attempt ${pollCount})`, {
+            windowReadExists: !!window.read,
+            deviceExists: !!(window.read && window.read.device),
+          });
+          return false; // Keep polling
+        }
+
+        // Bridge found! Stop polling and get device info
+        await serverLog("✅ Android bridge detected!", {
+          pollAttempts: pollCount,
+          timeElapsed: `${pollCount * 1000}ms`
         });
 
-        // 📱 Get device information from Android bridge
-        if (hasAndroidBridge) {
-          await serverLog("📱 Android device bridge detected - fetching device info...");
-          const raw = window.read.device.information();
+        let deviceData = {};
 
-          // Handle both string and object return types
-          if (typeof raw === 'object' && raw !== null) {
-            // Android returned a JavaScript object directly
-            deviceData = raw;
-            await serverLog("✅ Got device info (object)", { dataKeys: Object.keys(raw) });
-          } else if (typeof raw === 'string') {
-            // Android returned a JSON string
-            try {
-              deviceData = JSON.parse(raw);
-              await serverLog("✅ Got device info (parsed string)", { dataKeys: Object.keys(deviceData) });
-            } catch (err) {
-              // If parsing fails, it might be double-encoded
-              try {
-                const unescaped = JSON.parse(raw);
-                if (typeof unescaped === 'string') {
-                  deviceData = JSON.parse(unescaped);
-                  await serverLog("✅ Got device info (double-encoded)", { dataKeys: Object.keys(deviceData) });
-                } else {
-                  deviceData = unescaped;
-                }
-              } catch (doubleErr) {
-                await serverLog("❌ Failed to parse device info JSON", { 
-                  error: err.message,
-                  rawType: typeof raw,
-                  rawPreview: raw.substring(0, 100)
-                }, 'error');
-                return; // Exit if parsing fails
-              }
-            }
-          } else {
-            await serverLog("❌ Unexpected data type from Android bridge", { 
-              dataType: typeof raw 
+        // 📱 Get device information from Android bridge
+        const raw = window.read.device.information();
+
+        // Handle both string and object return types
+        if (typeof raw === 'object' && raw !== null) {
+          // Android returned a JavaScript object directly
+          deviceData = raw;
+          await serverLog("✅ Got device info (object)", { 
+            dataKeys: Object.keys(raw),
+            data: raw 
+          });
+        } else if (typeof raw === 'string') {
+          // Android returned a JSON string
+          try {
+            deviceData = JSON.parse(raw);
+            await serverLog("✅ Got device info (parsed string)", { 
+              dataKeys: Object.keys(deviceData),
+              data: deviceData
+            });
+          } catch (err) {
+            await serverLog("❌ Failed to parse device info JSON", { 
+              error: err.message,
+              rawType: typeof raw,
+              rawValue: raw
             }, 'error');
-            return;
+            return true; // Stop polling - invalid data
           }
         } else {
-          await serverLog("⚠️ No Android device bridge found", {}, 'warn');
+          await serverLog("❌ Unexpected data type from Android bridge", { 
+            dataType: typeof raw,
+            value: raw
+          }, 'error');
+          return true; // Stop polling - invalid data
         }
 
         // Send device data to API
@@ -304,24 +306,48 @@ const CardDetectionApp = () => {
 
           const result = await res.json();
           await serverLog("✅ Device info sent successfully", result);
+          deviceInfoSent = true;
         } else {
-          await serverLog("⚠️ No device info to send - deviceData is empty", {}, 'warn');
+          await serverLog("⚠️ Device data is empty", { raw }, 'warn');
         }
+
+        return true; // Stop polling - success
       } catch (error) {
-        await serverLog("❌ Error in sendDeviceInfo", { 
+        await serverLog("❌ Error in checkAndSendDeviceInfo", { 
           error: error.message,
           stack: error.stack 
         }, 'error');
-        // Don't block the app if device info fails
+        return true; // Stop polling on error
       }
     }
 
-    // Add a small delay to ensure Android bridge is fully ready
-    const timer = setTimeout(() => {
-      sendDeviceInfo();
-    }, 300);
+    // Start polling after initial delay
+    const initialTimer = setTimeout(async () => {
+      const shouldStop = await checkAndSendDeviceInfo();
+      
+      if (!shouldStop && pollCount < maxPolls) {
+        // Continue polling every 1 second
+        pollInterval = setInterval(async () => {
+          const shouldStop = await checkAndSendDeviceInfo();
+          
+          if (shouldStop || pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            
+            if (!deviceInfoSent && pollCount >= maxPolls) {
+              await serverLog("⏱️ Stopped polling - max attempts reached", {
+                totalAttempts: pollCount,
+                bridgeFound: false
+              }, 'warn');
+            }
+          }
+        }, 1000); // Poll every 1 second
+      }
+    }, 500); // Initial delay of 500ms
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(initialTimer);
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [authData, Merchant, sessionId]); 
 
 
