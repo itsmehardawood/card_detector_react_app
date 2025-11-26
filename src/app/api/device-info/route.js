@@ -98,11 +98,63 @@ export async function POST(request) {
       console.warn("⚠️ Device info received without merchantId");
     }
 
-    return Response.json({ 
-      success: true, 
-      received: data,
-      message: "Device info received and logged successfully"
-    });
+    // Forward device info to Laravel API
+    try {
+      console.log('📤 Forwarding device info to Laravel API...');
+      
+      const laravelResponse = await fetch('https://admin.cardnest.io/api/device-info', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          DeviceId: data.DeviceId,
+          merchantId: data.merchantId,
+          sessionId: data.sessionId,
+          timestamp: data.timestamp || Date.now(),
+          device: data.device,
+          network: data.network,
+          sims: data.sims || [],
+          location: data.location || null
+        })
+      });
+
+      if (laravelResponse.ok) {
+        const laravelResult = await laravelResponse.json();
+        console.log('✅ Device info forwarded to Laravel successfully:', laravelResult);
+        
+        return Response.json({ 
+          success: true, 
+          received: data,
+          laravelResponse: laravelResult,
+          message: "Device info received and forwarded to Laravel successfully"
+        });
+      } else {
+        const errorText = await laravelResponse.text();
+        console.error('❌ Laravel API error:', {
+          status: laravelResponse.status,
+          statusText: laravelResponse.statusText,
+          error: errorText
+        });
+        
+        return Response.json({ 
+          success: true, 
+          received: data,
+          laravelError: errorText,
+          message: "Device info received but Laravel forwarding failed"
+        }, { status: 200 }); // Still return 200 to not break frontend
+      }
+    } catch (forwardError) {
+      console.error('❌ Error forwarding to Laravel:', forwardError);
+      
+      return Response.json({ 
+        success: true, 
+        received: data,
+        forwardError: forwardError.message,
+        message: "Device info received but Laravel forwarding failed"
+      }, { status: 200 }); // Still return 200 to not break frontend
+    }
   } catch (error) {
     console.error("❌ Error parsing device info:", error);
     return Response.json({ 
