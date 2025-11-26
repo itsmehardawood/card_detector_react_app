@@ -24,6 +24,22 @@ const MAX_ATTEMPTS = 5;
 const DETECTION_TIMEOUT = 60000; // 60 seconds
 
 const CardDetectionApp = () => {
+  // IMMEDIATE log on component creation - fires before any useEffect
+  if (typeof window !== 'undefined') {
+    fetch("/api/client-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        message: "🎬 CardDetectionApp component rendering", 
+        details: {
+          url: window.location.href,
+          timestamp: Date.now()
+        },
+        level: 'info'
+      })
+    }).catch(err => console.error("Initial log failed:", err));
+  }
+
   // Authentication state
   const [authData, setAuthData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
