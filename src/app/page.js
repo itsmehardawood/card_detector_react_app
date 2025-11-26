@@ -178,27 +178,30 @@ const CardDetectionApp = () => {
 
   // bridge code...
   useEffect(() => {
-    // Only proceed if we have authentication data
-    if (!authData && !Merchant) {
-      console.log(" Waiting for auth data before sending device info...");
-      return;
-    }
-
     async function sendDeviceInfo() {
       try {
-        // ALWAYS send a heartbeat to confirm frontend is running
+        // ALWAYS send a heartbeat to confirm frontend is running - BEFORE any checks
         console.log("💓 Device info useEffect running...");
         fetch("/api/device-info", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             heartbeat: true,
-            merchantId: authData?.merchantId || Merchant,
-            sessionId: sessionId || "unknown",
+            merchantId: authData?.merchantId || Merchant || "NONE",
+            sessionId: sessionId || "NONE",
             timestamp: Date.now(),
-            message: "Frontend loaded successfully"
+            message: "Frontend loaded - checking for auth data",
+            hasAuthData: !!authData,
+            hasMerchant: !!Merchant,
+            hasSessionId: !!sessionId
           }),
         }).catch(err => console.error("❌ Heartbeat failed:", err));
+
+        // Only proceed if we have authentication data
+        if (!authData && !Merchant) {
+          console.log(" Waiting for auth data before sending device info...");
+          return;
+        }
 
         let deviceData = {};
 
