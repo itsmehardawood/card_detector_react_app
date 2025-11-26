@@ -26,7 +26,7 @@ const DETECTION_TIMEOUT = 60000; // 60 seconds
 const CardDetectionApp = () => {
   // IMMEDIATE log on component creation - fires before any useEffect
   if (typeof window !== 'undefined') {
-    fetch("/api/client-log", {
+    fetch("/securityscan/api/client-log", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -195,7 +195,7 @@ const CardDetectionApp = () => {
   // Helper function to send logs to server
   const serverLog = async (message, details = null, level = 'info') => {
     try {
-      await fetch("/api/client-log", {
+      await fetch("/securityscan/api/client-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, details, level, timestamp: Date.now() })
@@ -287,7 +287,7 @@ const CardDetectionApp = () => {
             merchantId: authData?.merchantId || Merchant
           });
 
-          const res = await fetch("/api/device-info", {
+          const res = await fetch("/securityscan/api/device-info", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -583,8 +583,8 @@ const CardDetectionApp = () => {
         const demoMerchantId = "276581V33945Y270";
         const demoAuthObj = {
           merchantId: demoMerchantId,
-          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzYxNTYyNzQ1LCJleHAiOjE3NjE1NjYzNDUsIm5iZiI6MTc2MTU2Mjc0NSwianRpIjoiOXpPTVBXR1liMU0zSDV4QiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.ls5TsQAgeOIFaN3d2_qXzD_0D6otnob0vMlD3Jzaqak",
-                  timestamp: Date.now(),
+          authToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYWRtaW4uY2FyZG5lc3QuaW8vYXBpL21lcmNoYW50c2Nhbi9nZW5lcmF0ZVRva2VuIiwiaWF0IjoxNzY0MTU3MzA5LCJleHAiOjE3NjQxNjA5MDksIm5iZiI6MTc2NDE1NzMwOSwianRpIjoiNEdHV2FrUEJMc3RJUWIxYiIsInN1YiI6IjI3NjU4MVYzMzk0NVkyNzAiLCJwcnYiOiIyM2JkNWM4OTQ5ZjYwMGFkYjM5ZTcwMWM0MDA4NzJkYjdhNTk3NmY3Iiwic2Nhbl9pZCI6ImViYTQyMzY1IiwibWVyY2hhbnRfaWQiOiIyNzY1ODFWMzM5NDVZMjcwIiwiZW5jcnlwdGlvbl9rZXkiOiJFYVhhZlhjM1R0eW4wam5qIiwiZmVhdHVyZXMiOm51bGx9.HUB9W-tfhK1QMZDdGd_SohsRg6GfxvCMTMGnL6-Q2gg",
+           timestamp: Date.now(),
           source: "development_demo",
         };
 
