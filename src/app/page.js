@@ -176,80 +176,101 @@ const CardDetectionApp = () => {
 
 
 
+  // Helper function to send logs to server
+  const serverLog = async (message, details = null, level = 'info') => {
+    try {
+      await fetch("/api/client-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, details, level, timestamp: Date.now() })
+      });
+    } catch (err) {
+      console.error("Failed to send log to server:", err);
+    }
+  };
+
   // bridge code...
   useEffect(() => {
     async function sendDeviceInfo() {
       try {
-        // ALWAYS send a heartbeat to confirm frontend is running - BEFORE any checks
-        console.log("💓 Device info useEffect running...");
-        fetch("/api/device-info", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            heartbeat: true,
-            merchantId: authData?.merchantId || Merchant || "NONE",
-            sessionId: sessionId || "NONE",
-            timestamp: Date.now(),
-            message: "Frontend loaded - checking for auth data",
-            hasAuthData: !!authData,
-            hasMerchant: !!Merchant,
-            hasSessionId: !!sessionId
-          }),
-        }).catch(err => console.error("❌ Heartbeat failed:", err));
+        // Send initial log to server
+        await serverLog("🚀 Device info useEffect triggered", {
+          hasAuthData: !!authData,
+          hasMerchant: !!Merchant,
+          hasSessionId: !!sessionId,
+          merchantId: authData?.merchantId || Merchant || "NONE",
+          sessionId: sessionId || "NONE"
+        });
 
         // Only proceed if we have authentication data
         if (!authData && !Merchant) {
-          console.log(" Waiting for auth data before sending device info...");
+          await serverLog("⏸️ Waiting for auth data before sending device info");
           return;
         }
 
         let deviceData = {};
 
-        //  Debug: Check what's available on window object
-        console.log("🔍 Checking window.read:", typeof window.read);
-        console.log("🔍 window.read object:", window.read);
+        // Check if Android bridge exists
+        const hasAndroidBridge = !!(window.read && window.read.device && typeof window.read.device.information === "function");
+        
+        await serverLog("🔍 Checking Android bridge", {
+          windowReadExists: !!window.read,
+          deviceExists: !!(window.read && window.read.device),
+          informationExists: hasAndroidBridge,
+          windowReadType: typeof window.read
+        });
 
         // 📱 Get device information from Android bridge
-        if (window.read && window.read.device && typeof window.read.device.information === "function") {
-          console.log("📱 Android device bridge detected — fetching device info...");
+        if (hasAndroidBridge) {
+          await serverLog("📱 Android device bridge detected - fetching device info...");
           const raw = window.read.device.information();
 
           // Handle both string and object return types
           if (typeof raw === 'object' && raw !== null) {
             // Android returned a JavaScript object directly
             deviceData = raw;
-            console.log("✅ Got device info (object):", deviceData);
+            await serverLog("✅ Got device info (object)", { dataKeys: Object.keys(raw) });
           } else if (typeof raw === 'string') {
             // Android returned a JSON string
             try {
               deviceData = JSON.parse(raw);
-              console.log("✅ Got device info (parsed string):", deviceData);
+              await serverLog("✅ Got device info (parsed string)", { dataKeys: Object.keys(deviceData) });
             } catch (err) {
               // If parsing fails, it might be double-encoded
               try {
                 const unescaped = JSON.parse(raw);
                 if (typeof unescaped === 'string') {
                   deviceData = JSON.parse(unescaped);
-                  console.log("✅ Got device info (double-encoded, now fixed):", deviceData);
+                  await serverLog("✅ Got device info (double-encoded)", { dataKeys: Object.keys(deviceData) });
                 } else {
                   deviceData = unescaped;
                 }
               } catch (doubleErr) {
-                console.error("❌ Failed to parse device info JSON:", err);
-                console.error("❌ Also failed double-parse attempt:", doubleErr);
+                await serverLog("❌ Failed to parse device info JSON", { 
+                  error: err.message,
+                  rawType: typeof raw,
+                  rawPreview: raw.substring(0, 100)
+                }, 'error');
                 return; // Exit if parsing fails
               }
             }
           } else {
-            console.error("❌ Unexpected data type from Android bridge:", typeof raw);
+            await serverLog("❌ Unexpected data type from Android bridge", { 
+              dataType: typeof raw 
+            }, 'error');
             return;
           }
         } else {
-          console.log("⚠️ No Android device bridge found — likely in browser mode.");
+          await serverLog("⚠️ No Android device bridge found", {}, 'warn');
         }
 
         // Send device data to API
         if (Object.keys(deviceData).length > 0) {
+          await serverLog("📤 Sending device info to API", { 
+            dataKeys: Object.keys(deviceData),
+            merchantId: authData?.merchantId || Merchant
+          });
+
           const res = await fetch("/api/device-info", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -266,12 +287,15 @@ const CardDetectionApp = () => {
           }
 
           const result = await res.json();
-          console.log("📤 Device info sent successfully:", result);
+          await serverLog("✅ Device info sent successfully", result);
         } else {
-          console.warn(" No device info to send");
+          await serverLog("⚠️ No device info to send - deviceData is empty", {}, 'warn');
         }
       } catch (error) {
-        console.error(" Error while sending device info:", error);
+        await serverLog("❌ Error in sendDeviceInfo", { 
+          error: error.message,
+          stack: error.stack 
+        }, 'error');
         // Don't block the app if device info fails
       }
     }
