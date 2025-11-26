@@ -54,11 +54,13 @@ export async function POST(request) {
     const formData = await request.formData();
     const merchantId = formData.get('merchant_id');
     const authToken = formData.get('auth_token');
+    const deviceInfoRaw = formData.get('device_info'); // Get device info JSON string from Android
     
     console.log('🔑 POST Auth data received:', { 
       merchantId, 
       authTokenLength: authToken ? authToken.length : 0,
-      authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null'
+      authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null',
+      hasDeviceInfo: !!deviceInfoRaw
     });
     
     // Log request details for debugging
@@ -72,6 +74,105 @@ export async function POST(request) {
       originalUrl: request.url,
       userAgent: request.headers.get('user-agent')
     });
+    
+    // Parse and forward device info to Laravel API
+    if (deviceInfoRaw) {
+      try {
+        // Parse the JSON string from Android (it may be escaped)
+        let deviceData;
+        try {
+          deviceData = JSON.parse(deviceInfoRaw);
+        } catch (firstParseError) {
+          // If first parse fails, try unescaping first (in case it's double-escaped)
+          console.log('⚠️ First parse failed, attempting unescape...');
+          const unescaped = deviceInfoRaw.replace(/\\\"/g, '"');
+          deviceData = JSON.parse(unescaped);
+        }
+        
+        console.log('\n📦 ========================================');
+        console.log('📦 DEVICE INFO RECEIVED FROM ANDROID');
+        console.log('📦 ========================================');
+        console.log('🆔 Device ID:', deviceData.DeviceId);
+        
+        if (deviceData.device) {
+          console.log('📱 Device Details:', {
+            brand: deviceData.device.brand,
+            manufacturer: deviceData.device.manufacturer,
+            model: deviceData.device.model,
+            androidVersion: deviceData.device.release,
+            sdkInt: deviceData.device.sdkInt,
+            securityPatch: deviceData.device.securityPatch
+          });
+        }
+        
+        if (deviceData.network) {
+          console.log('🌐 Network Details:', {
+            hasInternet: deviceData.network.hasInternet,
+            activeTransports: deviceData.network.activeTransports,
+            ipv4: deviceData.network.ipv4
+          });
+        }
+        
+        if (deviceData.sims && deviceData.sims.length > 0) {
+          console.log('📞 SIM Cards:', deviceData.sims.map(sim => ({
+            carrier: sim.carrierId,
+            number: sim.sim,
+            type: sim.simType
+          })));
+        }
+        
+        console.log('📦 ========================================\n');
+        
+        // Generate session ID for tracking
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        
+        // Prepare payload for Laravel API
+        const laravelPayload = {
+          DeviceId: deviceData.DeviceId,
+          merchantId: merchantId,
+          sessionId: sessionId,
+          timestamp: Date.now(),
+          device: deviceData.device,
+          network: deviceData.network,
+          sims: deviceData.sims || [],
+          location: deviceData.location || null
+        };
+        
+        console.log('📤 Sending device info to Laravel API...');
+        
+        // Send to Laravel API
+        const laravelResponse = await fetch('https://admin.cardnest.io/api/device-info', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(laravelPayload)
+        });
+        
+        if (laravelResponse.ok) {
+          const laravelResult = await laravelResponse.json();
+          console.log('✅ Device info sent to Laravel successfully:', laravelResult);
+        } else {
+          const errorText = await laravelResponse.text();
+          console.error('❌ Laravel API error:', {
+            status: laravelResponse.status,
+            statusText: laravelResponse.statusText,
+            error: errorText
+          });
+        }
+        
+      } catch (parseError) {
+        console.error('❌ Failed to parse/send device_info:', {
+          error: parseError.message,
+          stack: parseError.stack,
+          rawData: deviceInfoRaw?.substring(0, 200)
+        });
+      }
+    } else {
+      console.warn('⚠️ No device_info provided in POST request');
+    }
     
     // Basic validation
     if (!merchantId || !authToken) {
