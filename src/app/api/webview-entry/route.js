@@ -104,12 +104,12 @@ export async function POST(request) {
     
     console.log('💾 Session stored:', sessionId);
     
-    // Get the base URL from the current request (preserves ngrok domain)
-    const baseUrl = getBaseUrlFromRequest(request);
+    // Use static HTTPS URL for production (nginx requires HTTPS)
+    const baseUrl = 'https://mobile.cardnest.io';
     const redirectUrl = `${baseUrl}/securityscan?session=${sessionId}&source=post`;
     
     console.log('🔄 Redirecting to:', redirectUrl);
-    console.log('📍 Base URL determined from request:', baseUrl);
+    console.log('📍 Base URL (static HTTPS):', baseUrl);
     
     // Create redirect response with proper headers
     const response = NextResponse.redirect(redirectUrl, 302);
