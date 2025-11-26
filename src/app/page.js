@@ -186,6 +186,20 @@ const CardDetectionApp = () => {
 
     async function sendDeviceInfo() {
       try {
+        // ALWAYS send a heartbeat to confirm frontend is running
+        console.log("💓 Device info useEffect running...");
+        fetch("/api/device-info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            heartbeat: true,
+            merchantId: authData?.merchantId || Merchant,
+            sessionId: sessionId || "unknown",
+            timestamp: Date.now(),
+            message: "Frontend loaded successfully"
+          }),
+        }).catch(err => console.error("❌ Heartbeat failed:", err));
+
         let deviceData = {};
 
         //  Debug: Check what's available on window object

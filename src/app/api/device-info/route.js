@@ -5,6 +5,18 @@ export async function POST(request) {
   try {
     const data = await request.json();
     
+    // Check if this is just a heartbeat
+    if (data.heartbeat) {
+      console.log("💓 HEARTBEAT RECEIVED - Frontend is running!");
+      console.log("   Merchant:", data.merchantId);
+      console.log("   Session:", data.sessionId);
+      console.log("   Message:", data.message);
+      return Response.json({ 
+        success: true, 
+        message: "Heartbeat received"
+      });
+    }
+    
     console.log("\n🔍 ========================================");
     console.log("🔍 RAW REQUEST BODY RECEIVED:");
     console.log("🔍 ========================================");
