@@ -49,7 +49,22 @@ const getBaseUrlFromRequest = (request) => {
 
 export async function POST(request) {
   try {
-    console.log(' Received POST request from Android WebView');
+    console.log('📱 Received POST request from Android WebView');
+    
+    // Clone the request to read it multiple ways
+    const requestClone = request.clone();
+    
+    // Try reading as text first to see raw data
+    try {
+      const rawText = await requestClone.text();
+      console.log('📄 Raw POST body (text):', {
+        length: rawText.length,
+        content: rawText.substring(0, 500) + (rawText.length > 500 ? '...' : ''),
+        hasDeviceInfo: rawText.includes('device_info') || rawText.includes('device_Info')
+      });
+    } catch (e) {
+      console.log('⚠️ Could not read as text:', e.message);
+    }
     
     const formData = await request.formData();
     
@@ -68,7 +83,19 @@ export async function POST(request) {
     // Try both lowercase and uppercase 'I' to handle Android inconsistencies
     const deviceInfoRaw = formData.get('device_info') || formData.get('device_Info');
     
-    console.log(' POST Auth data received:', { 
+    // Debug: Log the raw device_Info value in detail
+    console.log('🔍 Device Info Raw Value Debug:', {
+      deviceInfoRaw: deviceInfoRaw,
+      type: typeof deviceInfoRaw,
+      isNull: deviceInfoRaw === null,
+      isUndefined: deviceInfoRaw === undefined,
+      isEmpty: deviceInfoRaw === '',
+      length: deviceInfoRaw ? deviceInfoRaw.length : 0,
+      firstChars: deviceInfoRaw ? deviceInfoRaw.substring(0, 100) : 'N/A',
+      lastChars: deviceInfoRaw && deviceInfoRaw.length > 100 ? deviceInfoRaw.substring(deviceInfoRaw.length - 50) : 'N/A'
+    });
+    
+    console.log('🔑 POST Auth data received:', {
       merchantId, 
       authTokenLength: authToken ? authToken.length : 0,
       authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null',
