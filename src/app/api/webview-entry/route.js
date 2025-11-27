@@ -49,14 +49,14 @@ const getBaseUrlFromRequest = (request) => {
 
 export async function POST(request) {
   try {
-    console.log('📱 Received POST request from Android WebView');
+    console.log(' Received POST request from Android WebView');
     
     const formData = await request.formData();
     const merchantId = formData.get('merchant_id');
     const authToken = formData.get('auth_token');
     const deviceInfoRaw = formData.get('device_info'); // Get device info JSON string from Android
     
-    console.log('🔑 POST Auth data received:', { 
+    console.log(' POST Auth data received:', { 
       merchantId, 
       authTokenLength: authToken ? authToken.length : 0,
       authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null',
@@ -75,15 +75,15 @@ export async function POST(request) {
       userAgent: request.headers.get('user-agent')
     });
     
-    // Parse and forward device info to Laravel API
+   
     if (deviceInfoRaw) {
       try {
-        // Parse the JSON string from Android (it may be escaped)
+       
         let deviceData;
         try {
           deviceData = JSON.parse(deviceInfoRaw);
         } catch (firstParseError) {
-          // If first parse fails, try unescaping first (in case it's double-escaped)
+     
           console.log('⚠️ First parse failed, attempting unescape...');
           const unescaped = deviceInfoRaw.replace(/\\\"/g, '"');
           deviceData = JSON.parse(unescaped);
