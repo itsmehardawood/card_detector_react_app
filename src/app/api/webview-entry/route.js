@@ -52,15 +52,28 @@ export async function POST(request) {
     console.log(' Received POST request from Android WebView');
     
     const formData = await request.formData();
+    
+    // Debug: Log all form fields received
+    console.log('📋 All form fields received:', {
+      fields: Array.from(formData.keys()),
+      values: Array.from(formData.entries()).map(([key, value]) => ({
+        key,
+        valueLength: typeof value === 'string' ? value.length : 0,
+        valuePreview: typeof value === 'string' ? value.substring(0, 50) + '...' : 'not a string'
+      }))
+    });
+    
     const merchantId = formData.get('merchant_id');
     const authToken = formData.get('auth_token');
-    const deviceInfoRaw = formData.get('device_info'); // Get device info JSON string from Android
+    // Try both lowercase and uppercase 'I' to handle Android inconsistencies
+    const deviceInfoRaw = formData.get('device_info') || formData.get('device_Info');
     
     console.log(' POST Auth data received:', { 
       merchantId, 
       authTokenLength: authToken ? authToken.length : 0,
       authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null',
-      hasDeviceInfo: !!deviceInfoRaw
+      hasDeviceInfo: !!deviceInfoRaw,
+      deviceInfoLength: deviceInfoRaw ? deviceInfoRaw.length : 0
     });
     
     // Log request details for debugging
