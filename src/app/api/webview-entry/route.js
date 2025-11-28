@@ -18,234 +18,142 @@ const cleanupSessions = () => {
 
 export async function POST(request) {
   try {
-    console.log(' Received POST request from Android WebView');
+    console.log('------------------------------------------------');
+    console.log('🔍 DEBUG START: Android Request Received');
     
-    // Clone the request to read it multiple ways
+    // 1. CLONE THE REQUEST
+    // We clone because we might need to read the body as text AND formData
     const requestClone = request.clone();
     
-    // Try reading as text first to see raw data
+    // 2. CHECK HEADERS
+    const contentType = request.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+
+    // 3. READ RAW BODY (The "Truth")
+    // This will tell us exactly what string Android sent, ignoring parsing errors
+    const rawBody = await requestClone.text();
+    console.log('📄 Raw Body Content (First 500 chars):', rawBody.substring(0, 500));
+
+    // 4. ATTEMPT EXTRACTION STRATEGY
+    let merchantId = null;
+    let authToken = null;
+    let deviceInfoRaw = null;
+
+    // STRATEGY A: Try parsing as FormData (Multipart or UrlEncoded)
     try {
-      const rawText = await requestClone.text();
-      console.log('📄 Raw POST body (text):', {
-        length: rawText.length,
-        content: rawText.substring(0, 500) + (rawText.length > 500 ? '...' : ''),
-        hasDeviceInfo: rawText.includes('device_info') || rawText.includes('device_Info')
-      });
+      const formData = await request.formData();
+      console.log('📋 FormData Keys found:', Array.from(formData.keys()));
+      
+      merchantId = formData.get('merchant_id');
+      authToken = formData.get('auth_token');
+      // CHECK BOTH CASINGS
+      deviceInfoRaw = formData.get('device_info') || formData.get('device_Info'); 
     } catch (e) {
-      console.log('⚠️ Could not read as text:', e.message);
+      console.log('⚠️ Could not parse as FormData, trying Query Params...');
     }
-    
-    const formData = await request.formData();
-    
-    // Debug: Log all form fields received
-    console.log('📋 All form fields received:', {
-      fields: Array.from(formData.keys()),
-      values: Array.from(formData.entries()).map(([key, value]) => ({
-        key,
-        valueLength: typeof value === 'string' ? value.length : 0,
-        valuePreview: typeof value === 'string' ? value.substring(0, 50) + '...' : 'not a string'
-      }))
-    });
-    
-    const merchantId = formData.get('merchant_id');
-    const authToken = formData.get('auth_token');
-    // Try both lowercase and uppercase 'I' to handle Android inconsistencies
-    const deviceInfoRaw = formData.get('device_info') || formData.get('device_Info');
-    
-    // Debug: Log the raw device_Info value in detail
-    console.log('🔍 Device Info Raw Value Debug:', {
-      deviceInfoRaw: deviceInfoRaw,
-      type: typeof deviceInfoRaw,
-      isNull: deviceInfoRaw === null,
-      isUndefined: deviceInfoRaw === undefined,
-      isEmpty: deviceInfoRaw === '',
-      length: deviceInfoRaw ? deviceInfoRaw.length : 0,
-      firstChars: deviceInfoRaw ? deviceInfoRaw.substring(0, 100) : 'N/A',
-      lastChars: deviceInfoRaw && deviceInfoRaw.length > 100 ? deviceInfoRaw.substring(deviceInfoRaw.length - 50) : 'N/A'
-    });
-    
-    console.log('🔑 POST Auth data received:', {
-      merchantId, 
-      authTokenLength: authToken ? authToken.length : 0,
-      authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null',
-      hasDeviceInfo: !!deviceInfoRaw,
-      deviceInfoLength: deviceInfoRaw ? deviceInfoRaw.length : 0
-    });
-    
-    // Log request details for debugging
-    const requestUrl = new URL(request.url);
-    const host = request.headers.get('host');
-    const protocol = request.headers.get('x-forwarded-proto') || requestUrl.protocol;
-    
-    console.log('🌐 Request details:', {
-      host,
-      protocol,
-      originalUrl: request.url,
-      userAgent: request.headers.get('user-agent')
-    });
-    
-   
+
+    // STRATEGY B: Try parsing as URL Search Params (if sent as raw string body)
+    // The sample you showed looks like: merchant_id=XYZ&device_Info={...}
+    if (!deviceInfoRaw && rawBody.includes('=')) {
+      try {
+        const params = new URLSearchParams(rawBody);
+        if (params.has('device_Info')) {
+          console.log('✅ Found data in Raw Body params!');
+          merchantId = merchantId || params.get('merchant_id');
+          authToken = authToken || params.get('auth_token');
+          deviceInfoRaw = params.get('device_info') || params.get('device_Info');
+        }
+      } catch (e) {
+        console.log('⚠️ Could not parse raw body as URL Params');
+      }
+    }
+
+    // STRATEGY C: Check URL Query String (sometimes they put it in the URL, not body)
+    if (!deviceInfoRaw) {
+      const urlParams = new URL(request.url).searchParams;
+      if (urlParams.has('device_Info') || urlParams.has('device_info')) {
+        console.log('✅ Found data in URL Query String!');
+        merchantId = merchantId || urlParams.get('merchant_id');
+        authToken = authToken || urlParams.get('auth_token');
+        deviceInfoRaw = urlParams.get('device_info') || urlParams.get('device_Info');
+      }
+    }
+
+    console.log('🕵️ FINAL EXTRACTION RESULT:');
+    console.log('   Merchant:', merchantId);
+    console.log('   Device Info Found?', !!deviceInfoRaw);
+    if (deviceInfoRaw) {
+        console.log('   Device Info Length:', deviceInfoRaw.length);
+        console.log('   Device Info Preview:', deviceInfoRaw.substring(0, 100));
+    }
+
+    // --- STOP HERE IF EMPTY ---
+    if (!deviceInfoRaw) {
+        console.error('❌ CRITICAL: Device Info is still empty after all checks.');
+        // This log helps you prove to the Android dev what you received
+        console.error('❌ RAW RECEIVED WAS:', rawBody);
+    }
+
+    // 5. PARSE JSON (Handle the double-encoding issue)
+    let deviceData = null;
     if (deviceInfoRaw) {
       try {
-       
-        let deviceData;
+        deviceData = JSON.parse(deviceInfoRaw);
+      } catch (e) {
+        console.log('⚠️ Standard parse failed. Trying to fix escaped quotes...');
         try {
-          deviceData = JSON.parse(deviceInfoRaw);
-        } catch (firstParseError) {
-     
-          console.log('⚠️ First parse failed, attempting unescape...');
-          const unescaped = deviceInfoRaw.replace(/\\\"/g, '"');
-          deviceData = JSON.parse(unescaped);
+            // If Android sent "{\"DeviceId\":...}" as a string literal
+            const unescaped = deviceInfoRaw.replace(/\\"/g, '"');
+            deviceData = JSON.parse(unescaped);
+        } catch (e2) {
+            console.error('❌ JSON Parsing failed completely.');
         }
-        
-        console.log('\n📦 ========================================');
-        console.log('📦 DEVICE INFO RECEIVED FROM ANDROID');
-        console.log('📦 ========================================');
-        console.log('🆔 Device ID:', deviceData.DeviceId);
-        
-        if (deviceData.device) {
-          console.log('📱 Device Details:', {
-            brand: deviceData.device.brand,
-            manufacturer: deviceData.device.manufacturer,
-            model: deviceData.device.model,
-            androidVersion: deviceData.device.release,
-            sdkInt: deviceData.device.sdkInt,
-            securityPatch: deviceData.device.securityPatch
-          });
-        }
-        
-        if (deviceData.network) {
-          console.log('🌐 Network Details:', {
-            hasInternet: deviceData.network.hasInternet,
-            activeTransports: deviceData.network.activeTransports,
-            ipv4: deviceData.network.ipv4
-          });
-        }
-        
-        if (deviceData.sims && deviceData.sims.length > 0) {
-          console.log('📞 SIM Cards:', deviceData.sims.map(sim => ({
-            carrier: sim.carrierId,
-            number: sim.sim,
-            type: sim.simType
-          })));
-        }
-        
-        console.log('📦 ========================================\n');
-        
-        // Generate session ID for tracking
+      }
+    }
+
+    // 6. DELEGATE TO DEVICE-INFO ROUTE (Your existing logic)
+    if (deviceData) {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
         
-        // Prepare payload for Laravel API
-        const laravelPayload = {
-          DeviceId: deviceData.DeviceId,
-          merchantId: merchantId,
-          sessionId: sessionId,
-          timestamp: Date.now(),
-          device: deviceData.device,
-          network: deviceData.network,
-          sims: deviceData.sims || [],
-          location: deviceData.location || null
+        // Construct clean payload
+        const payload = {
+            DeviceId: deviceData.DeviceId, // Note: Android sent "DeviceId", not "deviceId"
+            merchantId: merchantId,
+            sessionId: sessionId,
+            timestamp: Date.now(),
+            device: deviceData.device,
+            network: deviceData.network,
+            sims: deviceData.sims || [],
+            location: deviceData.location || null
         };
+
+        // Fire and forget to local API
+        const origin = new URL(request.url).origin;
+        fetch(`${origin}/securityscan/api/device-info`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => console.error('❌ Failed to forward to Laravel:', err));
+
+        // Create Session & Redirect
+        sessions.set(sessionId, { merchantId, authToken, createdAt: Date.now() });
         
-        console.log('📤 Sending device info to Laravel API...');
+        // Clean up
+        cleanupSessions();
+
+        const baseUrl = 'https://mobile.cardnest.io';
+        const redirectUrl = `${baseUrl}/securityscan?session=${sessionId}&source=post`;
         
-        // Send to Laravel API
-        const laravelResponse = await fetch('http://18.206.13.3/api/device-info', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify(laravelPayload)
-        });
-        
-        if (laravelResponse.ok) {
-          const laravelResult = await laravelResponse.json();
-          console.log('✅ Device info sent to Laravel successfully:', laravelResult);
-        } else {
-          const errorText = await laravelResponse.text();
-          console.error('❌ Laravel API error:', {
-            status: laravelResponse.status,
-            statusText: laravelResponse.statusText,
-            error: errorText
-          });
-        }
-        
-      } catch (parseError) {
-        console.error('❌ Failed to parse/send device_info:', {
-          error: parseError.message,
-          stack: parseError.stack,
-          rawData: deviceInfoRaw?.substring(0, 200)
-        });
-      }
-    } else {
-      console.warn('⚠️ No device_info provided in POST request');
+        console.log('🚀 Redirecting to:', redirectUrl);
+        return NextResponse.redirect(redirectUrl, 302);
     }
-    
-    // Basic validation
-    if (!merchantId || !authToken) {
-      console.error('❌ Missing required parameters');
-      return new Response(`
-        <!DOCTYPE html>
-        <html><body>
-          <h1>Error: Missing Parameters</h1>
-          <p>merchant_id and auth_token are required</p>
-        </body></html>
-      `, { 
-        status: 400,
-        headers: { 'Content-Type': 'text/html' }
-      });
-    }
-    
-    // Generate secure session ID
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
-    // Store session data securely (not in URL)
-    sessions.set(sessionId, {
-      merchantId,
-      authToken,
-      createdAt: Date.now(),
-      used: false
-    });
-    
-    // Clean up old sessions
-    cleanupSessions();
-    
-    console.log('💾 Session stored:', sessionId);
-    
-    // Use static HTTPS URL for production (nginx requires HTTPS)
-    const baseUrl = 'https://mobile.cardnest.io';
-    const redirectUrl = `${baseUrl}/securityscan?session=${sessionId}&source=post`;
-    
-    console.log('🔄 Redirecting to:', redirectUrl);
-    console.log('📍 Base URL (static HTTPS):', baseUrl);
-    
-    // Create redirect response with proper headers
-    const response = NextResponse.redirect(redirectUrl, 302);
-    
-    // Add headers to ensure proper redirect handling
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-    
-    return response;
-    
+
+    // Fallback if no data found
+    return new Response('Data missing', { status: 400 });
+
   } catch (error) {
-    console.error('❌ POST handler error:', error);
-    return new Response(`
-      <!DOCTYPE html>
-      <html><body>
-        <h1>Server Error</h1>
-        <p>Failed to process request: ${error.message}</p>
-        <script>
-          console.error('Server Error:', '${error.message}');
-        </script>
-      </body></html>
-    `, { 
-      status: 500,
-      headers: { 'Content-Type': 'text/html' }
-    });
+    console.error('💥 SERVER ERROR:', error);
+    return new Response(error.message, { status: 500 });
   }
 }
 

@@ -1,5 +1,5 @@
 
-
+// post endpoint to receive device info from Android app to webview-entry next js then forward to laravel api
 
 export async function POST(request) {
   try {
@@ -102,7 +102,7 @@ export async function POST(request) {
     try {
       console.log('📤 Forwarding device info to Laravel API...');
       
-      const laravelResponse = await fetch('http://18.206.13.3/api/device-info', {
+      const laravelResponse = await fetch('http://18.206.13.3:8001/api/device-info', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
