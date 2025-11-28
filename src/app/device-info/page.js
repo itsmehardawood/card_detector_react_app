@@ -151,3 +151,316 @@ export default function DeviceInfoPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // app/api/webview-entry/route.js
+// import { NextResponse } from 'next/server';
+
+// // In-memory session storage (for production, use Redis or database)
+// const sessions = new Map();
+
+// // Clean up old sessions (older than 10 minutes)
+// const cleanupSessions = () => {
+//   const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+//   for (const [sessionId, session] of sessions.entries()) {
+//     if (session.createdAt < tenMinutesAgo) {
+//       sessions.delete(sessionId);
+//     }
+//   }
+// };
+
+
+
+// export async function POST(request) {
+//   try {
+//     console.log('📱 Received POST request from Android WebView');
+    
+//     // Clone the request to read it multiple ways
+//     const requestClone = request.clone();
+    
+//     // Try reading as text first to see raw data
+//     try {
+//       const rawText = await requestClone.text();
+//       console.log('📄 Raw POST body (text):', {
+//         length: rawText.length,
+//         content: rawText.substring(0, 500) + (rawText.length > 500 ? '...' : ''),
+//         hasDeviceInfo: rawText.includes('device_info') || rawText.includes('device_Info')
+//       });
+//     } catch (e) {
+//       console.log('⚠️ Could not read as text:', e.message);
+//     }
+    
+//     const formData = await request.formData();
+    
+//     // Debug: Log all form fields received
+//     console.log('📋 All form fields received:', {
+//       fields: Array.from(formData.keys()),
+//       values: Array.from(formData.entries()).map(([key, value]) => ({
+//         key,
+//         valueLength: typeof value === 'string' ? value.length : 0,
+//         valuePreview: typeof value === 'string' ? value.substring(0, 50) + '...' : 'not a string'
+//       }))
+//     });
+    
+//     const merchantId = formData.get('merchant_id');
+//     const authToken = formData.get('auth_token');
+//     // Try both lowercase and uppercase 'I' to handle Android inconsistencies
+//     const deviceInfoRaw = formData.get('device_info') || formData.get('device_Info');
+    
+//     // Debug: Log the raw device_Info value in detail
+//     console.log('🔍 Device Info Raw Value Debug:', {
+//       deviceInfoRaw: deviceInfoRaw,
+//       type: typeof deviceInfoRaw,
+//       isNull: deviceInfoRaw === null,
+//       isUndefined: deviceInfoRaw === undefined,
+//       isEmpty: deviceInfoRaw === '',
+//       length: deviceInfoRaw ? deviceInfoRaw.length : 0,
+//       firstChars: deviceInfoRaw ? deviceInfoRaw.substring(0, 100) : 'N/A',
+//       lastChars: deviceInfoRaw && deviceInfoRaw.length > 100 ? deviceInfoRaw.substring(deviceInfoRaw.length - 50) : 'N/A'
+//     });
+    
+//     console.log('🔑 POST Auth data received:', {
+//       merchantId, 
+//       authTokenLength: authToken ? authToken.length : 0,
+//       authTokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null',
+//       hasDeviceInfo: !!deviceInfoRaw,
+//       deviceInfoLength: deviceInfoRaw ? deviceInfoRaw.length : 0
+//     });
+    
+//     // Log request details for debugging
+//     const requestUrl = new URL(request.url);
+//     const host = request.headers.get('host');
+//     const protocol = request.headers.get('x-forwarded-proto') || requestUrl.protocol;
+    
+//     console.log('🌐 Request details:', {
+//       host,
+//       protocol,
+//       originalUrl: request.url,
+//       userAgent: request.headers.get('user-agent')
+//     });
+    
+   
+//     if (deviceInfoRaw) {
+//       try {
+       
+//         let deviceData;
+//         try {
+//           deviceData = JSON.parse(deviceInfoRaw);
+//         } catch (firstParseError) {
+     
+//           console.log('⚠️ First parse failed, attempting unescape...');
+//           const unescaped = deviceInfoRaw.replace(/\\\"/g, '"');
+//           deviceData = JSON.parse(unescaped);
+//         }
+        
+//         console.log('\n📦 ========================================');
+//         console.log('📦 DEVICE INFO RECEIVED FROM ANDROID');
+//         console.log('📦 ========================================');
+//         console.log('🆔 Device ID:', deviceData.DeviceId);
+        
+//         if (deviceData.device) {
+//           console.log('📱 Device Details:', {
+//             brand: deviceData.device.brand,
+//             manufacturer: deviceData.device.manufacturer,
+//             model: deviceData.device.model,
+//             androidVersion: deviceData.device.release,
+//             sdkInt: deviceData.device.sdkInt,
+//             securityPatch: deviceData.device.securityPatch
+//           });
+//         }
+        
+//         if (deviceData.network) {
+//           console.log('🌐 Network Details:', {
+//             hasInternet: deviceData.network.hasInternet,
+//             activeTransports: deviceData.network.activeTransports,
+//             ipv4: deviceData.network.ipv4
+//           });
+//         }
+        
+//         if (deviceData.sims && deviceData.sims.length > 0) {
+//           console.log('📞 SIM Cards:', deviceData.sims.map(sim => ({
+//             carrier: sim.carrierId,
+//             number: sim.sim,
+//             type: sim.simType
+//           })));
+//         }
+        
+//         console.log('📦 ========================================\n');
+        
+//         // Generate session ID for tracking
+//         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        
+//         // Prepare payload for Laravel API
+//         const laravelPayload = {
+//           DeviceId: deviceData.DeviceId,
+//           merchantId: merchantId,
+//           sessionId: sessionId,
+//           timestamp: Date.now(),
+//           device: deviceData.device,
+//           network: deviceData.network,
+//           sims: deviceData.sims || [],
+//           location: deviceData.location || null
+//         };
+        
+//         console.log('📤 Sending device info to Laravel API...');
+        
+//         // Send to Laravel API
+//         const laravelResponse = await fetch('http://18.206.13.3/api/device-info', {
+//           method: 'POST',
+//           headers: {
+//             'Accept': 'application/json',
+//             'Content-Type': 'application/json',
+//             'Authorization': `Bearer ${authToken}`
+//           },
+//           body: JSON.stringify(laravelPayload)
+//         });
+        
+//         if (laravelResponse.ok) {
+//           const laravelResult = await laravelResponse.json();
+//           console.log('✅ Device info sent to Laravel successfully:', laravelResult);
+//         } else {
+//           const errorText = await laravelResponse.text();
+//           console.error('❌ Laravel API error:', {
+//             status: laravelResponse.status,
+//             statusText: laravelResponse.statusText,
+//             error: errorText
+//           });
+//         }
+        
+//       } catch (parseError) {
+//         console.error('❌ Failed to parse/send device_info:', {
+//           error: parseError.message,
+//           stack: parseError.stack,
+//           rawData: deviceInfoRaw?.substring(0, 200)
+//         });
+//       }
+//     } else {
+//       console.warn('⚠️ No device_info provided in POST request');
+//     }
+    
+//     // Basic validation
+//     if (!merchantId || !authToken) {
+//       console.error('❌ Missing required parameters');
+//       return new Response(`
+//         <!DOCTYPE html>
+//         <html><body>
+//           <h1>Error: Missing Parameters</h1>
+//           <p>merchant_id and auth_token are required</p>
+//         </body></html>
+//       `, { 
+//         status: 400,
+//         headers: { 'Content-Type': 'text/html' }
+//       });
+//     }
+    
+//     // Generate secure session ID
+//     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    
+//     // Store session data securely (not in URL)
+//     sessions.set(sessionId, {
+//       merchantId,
+//       authToken,
+//       createdAt: Date.now(),
+//       used: false
+//     });
+    
+//     // Clean up old sessions
+//     cleanupSessions();
+    
+//     console.log('💾 Session stored:', sessionId);
+    
+//     // Use static HTTPS URL for production (nginx requires HTTPS)
+//     const baseUrl = 'https://mobile.cardnest.io';
+//     const redirectUrl = `${baseUrl}/securityscan?session=${sessionId}&source=post`;
+    
+//     console.log('🔄 Redirecting to:', redirectUrl);
+//     console.log('📍 Base URL (static HTTPS):', baseUrl);
+    
+//     // Create redirect response with proper headers
+//     const response = NextResponse.redirect(redirectUrl, 302);
+    
+//     // Add headers to ensure proper redirect handling
+//     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+//     response.headers.set('Pragma', 'no-cache');
+//     response.headers.set('Expires', '0');
+    
+//     return response;
+    
+//   } catch (error) {
+//     console.error('❌ POST handler error:', error);
+//     return new Response(`
+//       <!DOCTYPE html>
+//       <html><body>
+//         <h1>Server Error</h1>
+//         <p>Failed to process request: ${error.message}</p>
+//         <script>
+//           console.error('Server Error:', '${error.message}');
+//         </script>
+//       </body></html>
+//     `, { 
+//       status: 500,
+//       headers: { 'Content-Type': 'text/html' }
+//     });
+//   }
+// }
+
+// // GET endpoint to retrieve session data
+// export async function GET(request) {
+//   try {
+//     const url = new URL(request.url);
+//     const sessionId = url.searchParams.get('session');
+    
+//     console.log('🔍 GET request for session:', sessionId);
+    
+//     if (!sessionId) {
+//       console.error('❌ No session ID provided');
+//       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+//     }
+    
+//     const session = sessions.get(sessionId);
+    
+//     if (!session) {
+//       console.error('❌ Invalid or expired session:', sessionId);
+//       return NextResponse.json({ error: 'Invalid or expired session' }, { status: 404 });
+//     }
+    
+//     console.log('✅ Session found and returning data for:', sessionId);
+    
+//     // Mark session as used and delete it (one-time use)
+//     sessions.delete(sessionId);
+    
+//     return NextResponse.json({
+//       merchantId: session.merchantId,
+//       authToken: session.authToken,
+//       success: true,
+//       sessionId: sessionId
+//     });
+    
+//   } catch (error) {
+//     console.error('❌ Session retrieval error:', error);
+//     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+//   }
+// }
+
+// // Optional: Add a health check endpoint
+// export async function HEAD(request) {
+//   return new Response(null, { 
+//     status: 200,
+//     headers: {
+//       'Cache-Control': 'no-cache'
+//     }
+//   });
+// }

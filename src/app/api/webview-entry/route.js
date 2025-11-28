@@ -1,4 +1,4 @@
-// app/api/webview-entry/route.js
+ // app/api/webview-entry/route.js
 import { NextResponse } from 'next/server';
 
 // In-memory session storage (for production, use Redis or database)
@@ -14,42 +14,11 @@ const cleanupSessions = () => {
   }
 };
 
-// Helper function to get the correct base URL from the request
-const getBaseUrlFromRequest = (request) => {
-  const url = new URL(request.url);
-  const host = request.headers.get('host');
-  const forwardedProto = request.headers.get('x-forwarded-proto');
-  
-  // Determine protocol - ngrok uses x-forwarded-proto header
-  let protocol;
-  if (forwardedProto) {
-    protocol = forwardedProto;
-  } else {
-    protocol = url.protocol.replace(':', ''); // Remove colon from protocol
-  }
-  
-  // Ensure protocol has proper format
-  if (!protocol.endsWith(':')) {
-    protocol = protocol + ':';
-  }
-  
-  // Build the base URL from the current request
-  const baseUrl = `${protocol}//${host}`;
-  
-  console.log('🔧 URL Construction Debug:', {
-    originalProtocol: url.protocol,
-    forwardedProto: forwardedProto,
-    finalProtocol: protocol,
-    host: host,
-    constructedBaseUrl: baseUrl
-  });
-  
-  return baseUrl;
-};
+
 
 export async function POST(request) {
   try {
-    console.log('📱 Received POST request from Android WebView');
+    console.log(' Received POST request from Android WebView');
     
     // Clone the request to read it multiple ways
     const requestClone = request.clone();
@@ -181,7 +150,7 @@ export async function POST(request) {
         console.log('📤 Sending device info to Laravel API...');
         
         // Send to Laravel API
-        const laravelResponse = await fetch('https://admin.cardnest.io/api/device-info', {
+        const laravelResponse = await fetch('http://18.206.13.3/api/device-info', {
           method: 'POST',
           headers: {
             'Accept': 'application/json',

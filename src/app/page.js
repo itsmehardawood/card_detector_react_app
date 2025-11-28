@@ -24,21 +24,7 @@ const MAX_ATTEMPTS = 5;
 const DETECTION_TIMEOUT = 60000; // 60 seconds
 
 const CardDetectionApp = () => {
-  // IMMEDIATE log on component creation - fires before any useEffect
-  if (typeof window !== 'undefined') {
-    fetch("/securityscan/api/client-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        message: "🎬 CardDetectionApp component rendering", 
-        details: {
-          url: window.location.href,
-          timestamp: Date.now()
-        },
-        level: 'info'
-      })
-    }).catch(err => console.error("Initial log failed:", err));
-  }
+
 
   // Authentication state
   const [authData, setAuthData] = useState(null);
@@ -193,17 +179,7 @@ const CardDetectionApp = () => {
 
 
   // Helper function to send logs to server
-  const serverLog = async (message, details = null, level = 'info') => {
-    try {
-      await fetch("/securityscan/api/client-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, details, level, timestamp: Date.now() })
-      });
-    } catch (err) {
-      console.error("Failed to send log to server:", err);
-    }
-  };
+
 
   // Device info is now handled in webview-entry POST endpoint
   // Android sends device_info directly in the POST request
